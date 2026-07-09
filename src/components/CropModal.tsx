@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   image: string;
+  /** true when re-editing an existing step's image */
+  editing?: boolean;
   onDone: (image: string) => void;
   onClose: () => void;
 }
@@ -13,11 +15,17 @@ interface Sel {
   y2: number;
 }
 
-export default function CropModal({ image, onDone, onClose }: Props) {
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 4;
+
+export default function CropModal({ image, editing, onDone, onClose }: Props) {
   const [sel, setSel] = useState<Sel | null>(null);
   const [dragging, setDragging] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [baseW, setBaseW] = useState(0);
+  const stageRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -27,8 +35,18 @@ export default function CropModal({ image, onDone, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Base fit width so the whole image is visible at zoom = 1
+  function onImgLoad() {
+    const img = imgRef.current!;
+    const vp = viewportRef.current!;
+    const maxW = vp.clientWidth;
+    const maxH = vp.clientHeight;
+    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+    setBaseW(Math.max(80, img.naturalWidth * scale));
+  }
+
   function norm(e: React.PointerEvent): { x: number; y: number } {
-    const rect = wrapRef.current!.getBoundingClientRect();
+    const rect = stageRef.current!.getBoundingClientRect();
     return {
       x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
       y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
@@ -79,6 +97,10 @@ export default function CropModal({ image, onDone, onClose }: Props) {
     onDone(canvas.toDataURL('image/png'));
   }
 
+  function bumpZoom(delta: number) {
+    setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((z + delta) * 100) / 100)));
+  }
+
   const selStyle = sel
     ? {
         left: `${Math.min(sel.x1, sel.x2) * 100}%`,
@@ -88,28 +110,65 @@ export default function CropModal({ image, onDone, onClose }: Props) {
       }
     : undefined;
 
+  const displayW = baseW > 0 ? baseW * zoom : undefined;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal capture-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>사용할 영역 선택</h3>
+          <h3>{editing ? '이미지 편집' : '사용할 영역 선택'}</h3>
           <button className="icon-btn" onClick={onClose}>
             ✕
           </button>
         </div>
         <p className="crop-hint">
-          드래그해서 사용할 영역을 선택하세요. 선택하지 않으면 전체 이미지가 사용됩니다.
+          드래그해서 사용할 영역을 선택하세요. 확대/축소로 세밀하게 자를 수 있고, 선택하지 않으면 전체
+          이미지가 사용됩니다.
         </p>
-        <div
-          className="crop-stage"
-          ref={wrapRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        >
-          <img ref={imgRef} src={image} alt="캡처" draggable={false} />
-          {sel && selStyle && <div className="crop-sel" style={selStyle} />}
+
+        <div className="crop-zoom">
+          <button className="icon-btn zoom-btn" onClick={() => bumpZoom(-0.25)} title="축소">
+            −
+          </button>
+          <input
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="zoom-slider"
+          />
+          <button className="icon-btn zoom-btn" onClick={() => bumpZoom(0.25)} title="확대">
+            ＋
+          </button>
+          <span className="zoom-val">{Math.round(zoom * 100)}%</span>
+          <button className="btn ghost small" onClick={() => setZoom(1)}>
+            맞춤
+          </button>
         </div>
+
+        <div className="crop-viewport" ref={viewportRef}>
+          <div
+            className="crop-stage"
+            ref={stageRef}
+            style={displayW ? { width: `${displayW}px` } : undefined}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
+            <img
+              ref={imgRef}
+              src={image}
+              alt="캡처"
+              draggable={false}
+              onLoad={onImgLoad}
+              style={{ width: '100%', display: 'block' }}
+            />
+            {sel && selStyle && <div className="crop-sel" style={selStyle} />}
+          </div>
+        </div>
+
         <div className="modal-foot">
           <button className="btn ghost" onClick={onClose}>
             취소

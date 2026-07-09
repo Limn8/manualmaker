@@ -11,6 +11,7 @@ interface Props {
   onCapture: () => void;
   onPaste: () => void;
   onFile: () => void;
+  onDuplicatePrevious: () => void;
 }
 
 export default function StepList({
@@ -22,14 +23,15 @@ export default function StepList({
   onCapture,
   onPaste,
   onFile,
+  onDuplicatePrevious,
 }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
   return (
     <aside className="step-list">
       <div className="step-list-head">
-        스텝 <span className="count">{steps.length}</span>
+        단계 <span className="count">{steps.length}</span>
       </div>
       <div className="step-list-scroll">
         {steps.map((step, i) => (
@@ -38,28 +40,31 @@ export default function StepList({
             className={
               'step-card' +
               (step.id === selectedId ? ' selected' : '') +
-              (overIndex === i && dragIndex !== null && dragIndex !== i ? ' drag-over' : '')
+              (insertIndex === i && dragIndex !== null ? ' insert-before' : '') +
+              (insertIndex === i + 1 && dragIndex !== null ? ' insert-after' : '')
             }
             draggable
             onDragStart={() => setDragIndex(i)}
             onDragEnd={() => {
               setDragIndex(null);
-              setOverIndex(null);
+              setInsertIndex(null);
             }}
             onDragOver={(e) => {
               e.preventDefault();
-              setOverIndex(i);
+              const rect = e.currentTarget.getBoundingClientRect();
+              const nextIndex = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
+              setInsertIndex(nextIndex);
             }}
             onDrop={(e) => {
               e.preventDefault();
-              if (dragIndex !== null && dragIndex !== i) onReorder(dragIndex, i);
+              if (dragIndex !== null && insertIndex !== null) onReorder(dragIndex, insertIndex);
               setDragIndex(null);
-              setOverIndex(null);
+              setInsertIndex(null);
             }}
             onClick={() => onSelect(step.id)}
           >
             <div className="step-thumb">
-              <img src={step.image} alt={`스텝 ${i + 1}`} draggable={false} />
+              <img src={step.image} alt={`단계 ${i + 1}`} draggable={false} />
               <span className="step-num">{i + 1}</span>
             </div>
             <div className="step-meta">
@@ -96,7 +101,7 @@ export default function StepList({
                 title="삭제"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`스텝 ${i + 1}을(를) 삭제할까요?`)) onDelete(step.id);
+                  if (confirm(`${i + 1}단계를 삭제할까요?`)) onDelete(step.id);
                 }}
               >
                 ✕
@@ -105,14 +110,22 @@ export default function StepList({
           </div>
         ))}
         <div className="step-add-row">
-          <button className="step-add" onClick={onCapture} title="화면 캡처로 스텝 추가">
+          <button className="step-add" onClick={onCapture} title="화면 캡처로 단계 추가">
             🖥️ 캡처
           </button>
-          <button className="step-add" onClick={onPaste} title="클립보드 이미지로 스텝 추가">
+          <button className="step-add" onClick={onPaste} title="클립보드 이미지로 단계 추가">
             📋 붙여넣기
           </button>
-          <button className="step-add" onClick={onFile} title="이미지 파일로 스텝 추가">
+          <button className="step-add" onClick={onFile} title="이미지 파일로 단계 추가">
             📁 파일
+          </button>
+          <button
+            className="step-add"
+            onClick={onDuplicatePrevious}
+            disabled={steps.length === 0}
+            title="현재 단계 또는 마지막 단계를 복사"
+          >
+            이전 페이지 복사
           </button>
         </div>
       </div>

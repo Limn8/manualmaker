@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
-import { ACTION_HINTS, ACTION_LABELS } from '../types';
+import {
+  ACTION_HINTS,
+  ACTION_LABELS,
+  DEFAULT_BOX_COLOR,
+  DEFAULT_BOX_SHAPE,
+  DEFAULT_INFO_DELAY_SEC,
+  actionIconSvg,
+} from '../types';
 
 interface Props {
   project: Project;
@@ -14,6 +21,16 @@ export default function Player({ project, onClose }: Props) {
   const steps = project.steps;
   const done = index >= steps.length;
   const step = done ? null : steps[index];
+  const boxColor = step?.boxColor ?? DEFAULT_BOX_COLOR;
+  const boxShape = step?.boxShape ?? DEFAULT_BOX_SHAPE;
+  const boxRadius = boxShape === 'circle' ? '999px' : boxShape === 'rounded' ? '12px' : '2px';
+  const infoDelaySec = step?.infoDelaySec ?? DEFAULT_INFO_DELAY_SEC;
+  const actionHint =
+    step?.action === 'info'
+      ? `${infoDelaySec}초 뒤 다음 단계로 넘어갑니다`
+      : step
+        ? ACTION_HINTS[step.action]
+        : '';
 
   useEffect(() => {
     setTyped('');
@@ -29,6 +46,12 @@ export default function Player({ project, onClose }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [steps.length, onClose]);
+
+  useEffect(() => {
+    if (!step || step.action !== 'info') return;
+    const timeout = window.setTimeout(advance, infoDelaySec * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [infoDelaySec, step]);
 
   function advance() {
     setIndex((i) => Math.min(steps.length, i + 1));
@@ -83,7 +106,7 @@ export default function Player({ project, onClose }: Props) {
         <div className="player-done">
           <div className="player-done-icon">🎉</div>
           <h2>튜토리얼 완료!</h2>
-          <p>{steps.length}개 스텝을 모두 마쳤습니다.</p>
+          <p>{steps.length}개 단계를 모두 마쳤습니다.</p>
           <div className="player-done-btns">
             <button className="btn" onClick={() => setIndex(0)}>
               처음부터 다시
@@ -98,7 +121,7 @@ export default function Player({ project, onClose }: Props) {
           <>
             <div className="player-stage">
               <div className="player-image-wrap">
-                <img src={step.image} alt={`스텝 ${index + 1}`} draggable={false} />
+                <img src={step.image} alt={`단계 ${index + 1}`} draggable={false} />
                 {step.box && (
                   <div
                     className={
@@ -114,6 +137,8 @@ export default function Player({ project, onClose }: Props) {
                       top: `${step.box.y * 100}%`,
                       width: `${step.box.w * 100}%`,
                       height: `${step.box.h * 100}%`,
+                      borderColor: boxColor,
+                      borderRadius: boxRadius,
                     }}
                     onClick={(e) => onBoxAction(e, 'click')}
                     onDoubleClick={(e) => onBoxAction(e, 'dblclick')}
@@ -121,7 +146,21 @@ export default function Player({ project, onClose }: Props) {
                     onWheel={() => {
                       if (step.action === 'scroll') advance();
                     }}
-                  />
+                  >
+                    {step.showBoxLabel !== false && (
+                      <span
+                        className="box-tag"
+                        style={{ backgroundColor: boxColor }}
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            actionIconSvg(step.action, 13) +
+                            '<span>' +
+                            ACTION_LABELS[step.action] +
+                            '</span>',
+                        }}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -130,9 +169,9 @@ export default function Player({ project, onClose }: Props) {
                 {ACTION_LABELS[step.action]}
               </span>
               <div className="player-caption-text">
-                <div className="player-desc">{step.description || ACTION_HINTS[step.action]}</div>
+                <div className="player-desc">{step.description || actionHint}</div>
                 {step.description && (
-                  <div className="player-hint">{ACTION_HINTS[step.action]}</div>
+                  <div className="player-hint">{actionHint}</div>
                 )}
               </div>
               {step.action === 'type' && (

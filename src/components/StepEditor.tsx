@@ -1,12 +1,21 @@
 import { useRef, useState } from 'react';
-import type { ActionType, Box, Step } from '../types';
-import { ACTION_LABELS } from '../types';
+import type { ActionType, Box, BoxShape, Step } from '../types';
+import {
+  ACTION_LABELS,
+  BOX_COLOR_PRESETS,
+  BOX_SHAPE_LABELS,
+  DEFAULT_BOX_COLOR,
+  DEFAULT_BOX_SHAPE,
+  DEFAULT_INFO_DELAY_SEC,
+  actionIconSvg,
+} from '../types';
 
 interface Props {
   step: Step;
   index: number;
   total: number;
   onChange: (patch: Partial<Step>) => void;
+  onRecrop: () => void;
 }
 
 interface Edges {
@@ -23,7 +32,7 @@ type Drag =
 
 const HANDLE_PX = 10;
 
-export default function StepEditor({ step, index, total, onChange }: Props) {
+export default function StepEditor({ step, index, total, onChange, onRecrop }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [, forceRender] = useState(0);
@@ -138,18 +147,25 @@ export default function StepEditor({ step, index, total, onChange }: Props) {
   }
 
   const box = step.box;
+  const boxColor = step.boxColor ?? DEFAULT_BOX_COLOR;
+  const boxShape = step.boxShape ?? DEFAULT_BOX_SHAPE;
+  const boxRadius = boxShape === 'circle' ? '999px' : boxShape === 'rounded' ? '12px' : '2px';
+  const showBoxLabel = step.showBoxLabel !== false;
 
   return (
     <div className="step-editor">
       <div className="editor-toolbar">
         <span className="editor-title">
-          스텝 {index + 1} / {total}
+          단계 {index + 1} / {total}
         </span>
         <span className="editor-hint">
           {box
             ? '박스를 드래그해 이동하거나 모서리로 크기를 조절하세요'
             : '이미지 위에 드래그해서 강조할 영역을 그리세요'}
         </span>
+        <button className="btn ghost small" onClick={onRecrop} title="이미지를 확대·축소하여 다시 자르기">
+          🔍 이미지 편집
+        </button>
         {box && (
           <button className="btn ghost small" onClick={() => onChange({ box: null })}>
             박스 제거
@@ -165,7 +181,7 @@ export default function StepEditor({ step, index, total, onChange }: Props) {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
         >
-          <img src={step.image} alt={`스텝 ${index + 1}`} draggable={false} />
+          <img src={step.image} alt={`단계 ${index + 1}`} draggable={false} />
           {box && box.w > 0 && box.h > 0 && (
             <div
               className="hl-box"
@@ -174,6 +190,9 @@ export default function StepEditor({ step, index, total, onChange }: Props) {
                 top: `${box.y * 100}%`,
                 width: `${box.w * 100}%`,
                 height: `${box.h * 100}%`,
+                borderColor: boxColor,
+                borderRadius: boxRadius,
+                boxShadow: `0 0 0 4px ${boxColor}2e`,
               }}
             >
               <span className="h h-tl" />
@@ -184,6 +203,15 @@ export default function StepEditor({ step, index, total, onChange }: Props) {
               <span className="h h-b" />
               <span className="h h-l" />
               <span className="h h-r" />
+              {showBoxLabel && (
+                <span
+                  className="box-tag"
+                  style={{ backgroundColor: boxColor }}
+                  dangerouslySetInnerHTML={{
+                    __html: actionIconSvg(step.action, 13) + '<span>' + ACTION_LABELS[step.action] + '</span>',
+                  }}
+                />
+              )}
             </div>
           )}
         </div>
@@ -197,13 +225,84 @@ export default function StepEditor({ step, index, total, onChange }: Props) {
               <button
                 key={a}
                 className={'chip' + (step.action === a ? ' active' : '')}
-                onClick={() => onChange({ action: a })}
+                onClick={() =>
+                  onChange({
+                    action: a,
+                    infoDelaySec: a === 'info' ? (step.infoDelaySec ?? DEFAULT_INFO_DELAY_SEC) : step.infoDelaySec,
+                  })
+                }
               >
                 {ACTION_LABELS[a]}
               </button>
             ))}
           </div>
         </div>
+        <div className="field">
+          <label>박스 색</label>
+          <div className="color-controls">
+            {BOX_COLOR_PRESETS.map((color) => (
+              <button
+                key={color}
+                className={'color-swatch' + (boxColor === color ? ' active' : '')}
+                style={{ backgroundColor: color }}
+                title={color}
+                onClick={() => onChange({ boxColor: color })}
+              />
+            ))}
+            <input
+              className="color-input"
+              type="color"
+              value={boxColor}
+              onChange={(e) => onChange({ boxColor: e.target.value })}
+              title="직접 색 선택"
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label>박스 모양</label>
+          <div className="action-picker">
+            {(Object.keys(BOX_SHAPE_LABELS) as BoxShape[]).map((shape) => (
+              <button
+                key={shape}
+                className={'chip' + (boxShape === shape ? ' active' : '')}
+                onClick={() => onChange({ boxShape: shape })}
+              >
+                {BOX_SHAPE_LABELS[shape]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label>설명탭</label>
+          <label className="switch-row">
+            <input
+              type="checkbox"
+              checked={showBoxLabel}
+              onChange={(e) => onChange({ showBoxLabel: e.target.checked })}
+            />
+            <span>박스 우측하단 아이콘과 문구 표시</span>
+          </label>
+        </div>
+        {step.action === 'info' && (
+          <div className="field">
+            <label>대기 시간</label>
+            <div className="delay-control">
+              <input
+                className="delay-input"
+                type="number"
+                min={1}
+                max={30}
+                value={step.infoDelaySec ?? DEFAULT_INFO_DELAY_SEC}
+                onChange={(e) =>
+                  onChange({
+                    infoDelaySec: Math.min(30, Math.max(1, Number(e.target.value) || DEFAULT_INFO_DELAY_SEC)),
+                  })
+                }
+              />
+              <span>초 뒤 다음 단계</span>
+            </div>
+          </div>
+        )}
         {step.action === 'type' && (
           <div className="field">
             <label>입력할 텍스트</label>

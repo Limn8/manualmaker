@@ -1,6 +1,6 @@
 ﻿import { jsPDF } from 'jspdf';
 import type { Project, Step } from '../types';
-import { ACTION_LABELS } from '../types';
+import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE } from '../types';
 import { fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const PAGE_W = 1600;
@@ -60,21 +60,12 @@ function renderTitlePage(project: Project): string {
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
   ctx.fillStyle = '#3182f6';
   ctx.fillRect(0, PAGE_H - 16, PAGE_W, 16);
-  ctx.fillStyle = '#e8f3ff';
-  ctx.beginPath();
-  ctx.arc(PAGE_W / 2, PAGE_H / 2 - 190, 70, 0, Math.PI * 2);
-  ctx.fill();
   ctx.textAlign = 'center';
-  ctx.font = '64px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
   ctx.textBaseline = 'middle';
-  ctx.fillText('📸', PAGE_W / 2, PAGE_H / 2 - 182);
-  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#191f28';
-  ctx.font = 'bold 72px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-  wrapText(ctx, project.title, PAGE_W / 2, PAGE_H / 2 - 20, PAGE_W - 300, 90);
-  ctx.font = '32px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-  ctx.fillStyle = '#8b95a1';
-  ctx.fillText(`${project.steps.length}개 스텝 · ManualMaker로 제작`, PAGE_W / 2, PAGE_H / 2 + 80);
+  ctx.font = 'bold 128px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+  wrapText(ctx, project.title, PAGE_W / 2, PAGE_H / 2, PAGE_W - 200, 150);
+  ctx.textBaseline = 'alphabetic';
   return canvas.toDataURL('image/jpeg', 0.9);
 }
 
@@ -108,11 +99,11 @@ function renderStepPage(
     const bw = step.box.w * fit.w;
     const bh = step.box.h * fit.h;
     ctx.save();
-    ctx.strokeStyle = '#3182f6';
+    ctx.strokeStyle = step.boxColor ?? DEFAULT_BOX_COLOR;
     ctx.lineWidth = 6;
-    ctx.shadowColor = 'rgba(49,130,246,0.55)';
+    ctx.shadowColor = step.boxColor ?? DEFAULT_BOX_COLOR;
     ctx.shadowBlur = 16;
-    ctx.strokeRect(bx, by, bw, bh);
+    strokeBox(ctx, bx, by, bw, bh, step.boxShape ?? DEFAULT_BOX_SHAPE);
     ctx.restore();
   }
 
@@ -153,6 +144,45 @@ function renderStepPage(
   ctx.fillText(`${index + 1} / ${total}`, PAGE_W - MARGIN, capY + CAPTION_H - 28);
 
   return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+function strokeBox(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  shape: string,
+): void {
+  if (shape === 'circle') {
+    ctx.beginPath();
+    ctx.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    return;
+  }
+  if (shape === 'rounded') {
+    roundedRect(ctx, x, y, width, height, 18);
+    ctx.stroke();
+    return;
+  }
+  ctx.strokeRect(x, y, width, height);
+}
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
 }
 
 function wrapText(

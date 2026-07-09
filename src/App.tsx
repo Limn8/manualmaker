@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Project, Step } from './types';
-import { newProject, uid } from './types';
+import { DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE, DEFAULT_INFO_DELAY_SEC, newProject, uid } from './types';
 import { loadProject, saveProject } from './store';
 import { downloadBlob, sanitizeFilename } from './utils';
 import CropModal from './components/CropModal';
@@ -17,6 +17,7 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [recropId, setRecropId] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
@@ -51,12 +52,45 @@ export default function App() {
       image,
       box: null,
       action: 'click',
+      boxColor: DEFAULT_BOX_COLOR,
+      boxShape: DEFAULT_BOX_SHAPE,
+      showBoxLabel: true,
+      infoDelaySec: DEFAULT_INFO_DELAY_SEC,
       description: '',
     };
     setProject((p) => ({ ...p, steps: [...p.steps, step] }));
     setSelectedId(step.id);
     setCropImage(null);
   }, []);
+
+  // Handle a finished crop: either replace an existing step's image or add new
+  const handleCropDone = useCallback(
+    (image: string) => {
+      if (recropId) {
+        setProject((p) => ({
+          ...p,
+          steps: p.steps.map((s) => (s.id === recropId ? { ...s, image } : s)),
+        }));
+        setRecropId(null);
+        setCropImage(null);
+      } else {
+        addStep(image);
+      }
+    },
+    [recropId, addStep],
+  );
+
+  function closeCrop() {
+    setCropImage(null);
+    setRecropId(null);
+  }
+
+  function handleRecrop() {
+    if (selected) {
+      setRecropId(selected.id);
+      setCropImage(selected.image);
+    }
+  }
 
   // Ctrl+V anywhere: paste an image straight into the crop dialog
   useEffect(() => {
@@ -130,12 +164,31 @@ export default function App() {
     [project.steps],
   );
 
+  const duplicatePreviousStep = useCallback(() => {
+    const sourceIndex =
+      selectedId === null ? project.steps.length - 1 : project.steps.findIndex((s) => s.id === selectedId);
+    if (sourceIndex < 0) return;
+    const source = project.steps[sourceIndex];
+    const duplicate: Step = {
+      ...source,
+      id: uid(),
+      description: source.description,
+    };
+    setProject((p) => {
+      const steps = [...p.steps];
+      steps.splice(sourceIndex + 1, 0, duplicate);
+      return { ...p, steps };
+    });
+    setSelectedId(duplicate.id);
+  }, [project.steps, selectedId]);
+
   const reorderStep = useCallback((from: number, to: number) => {
     setProject((p) => {
-      if (to < 0 || to >= p.steps.length || from === to) return p;
+      if (to < 0 || to > p.steps.length || from === to || from + 1 === to) return p;
       const steps = [...p.steps];
       const [moved] = steps.splice(from, 1);
-      steps.splice(to, 0, moved);
+      const targetIndex = from < to ? to - 1 : to;
+      steps.splice(targetIndex, 0, moved);
       return { ...p, steps };
     });
   }, []);
@@ -144,7 +197,7 @@ export default function App() {
 
   async function handleExport(kind: 'html' | 'pdf' | 'video') {
     if (project.steps.length === 0) {
-      alert('내보낼 스텝이 없습니다. 먼저 화면을 캡처하세요.');
+      alert('내보낼 단계가 없습니다. 먼저 화면을 캡처하세요.');
       return;
     }
     setExporting(kind);
@@ -191,8 +244,9 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-icon">📸</span> ManualMaker
+          ManualMaker
         </div>
+        <div className="creator-mark">제작: 경기이음온학교 임현우</div>
         <input
           className="title-input"
           value={project.title}
@@ -273,6 +327,7 @@ export default function App() {
           onCapture={handleCaptureScreen}
           onPaste={handlePasteClipboard}
           onFile={handlePickFile}
+          onDuplicatePrevious={duplicatePreviousStep}
         />
         <div className="editor-area">
           {selected ? (
@@ -282,14 +337,15 @@ export default function App() {
               index={project.steps.findIndex((s) => s.id === selected.id)}
               total={project.steps.length}
               onChange={(patch) => updateStep(selected.id, patch)}
+              onRecrop={handleRecrop}
             />
           ) : (
             <div className="empty-state">
               <div className="empty-card">
                 <div className="empty-icon">🖼️</div>
-                <h2>첫 스텝을 만들어보세요</h2>
+                <h2>첫 단계를 만들어보세요</h2>
                 <p>
-                  화면을 캡처하거나 이미지를 붙여넣어 튜토리얼 스텝을 추가합니다.
+                  화면을 캡처하거나 이미지를 붙여넣어 튜토리얼 단계를 추가합니다.
                   <br />
                   이미지 위에 강조 박스를 그리고, 클릭·입력 등의 동작을 지정하면
                   <br />
@@ -313,7 +369,12 @@ export default function App() {
       </div>
 
       {cropImage && (
-        <CropModal image={cropImage} onDone={addStep} onClose={() => setCropImage(null)} />
+        <CropModal
+          image={cropImage}
+          editing={!!recropId}
+          onDone={handleCropDone}
+          onClose={closeCrop}
+        />
       )}
       {showPlayer && <Player project={project} onClose={() => setShowPlayer(false)} />}
       {exporting && (
