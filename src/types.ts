@@ -58,6 +58,18 @@ export const DEFAULT_INFO_DELAY_SEC = 3;
 export const DEFAULT_VIDEO_STEP_SEC = 5;
 export const DEFAULT_VIDEO_DUBBING_ENABLED = false;
 export const DEFAULT_VIDEO_TTS_VOICE = 'Kore';
+export const GEMINI_TTS_VOICES = [
+  { value: 'Kore', label: 'Kore - 또렷하고 단단한 톤' },
+  { value: 'Puck', label: 'Puck - 밝고 경쾌한 톤' },
+  { value: 'Aoede', label: 'Aoede - 산뜻하고 부드러운 톤' },
+  { value: 'Leda', label: 'Leda - 젊고 자연스러운 톤' },
+  { value: 'Callirrhoe', label: 'Callirrhoe - 편안한 설명 톤' },
+  { value: 'Charon', label: 'Charon - 차분한 안내 톤' },
+  { value: 'Achird', label: 'Achird - 친근한 톤' },
+  { value: 'Laomedeia', label: 'Laomedeia - 활기 있는 톤' },
+  { value: 'Vindemiatrix', label: 'Vindemiatrix - 온화한 톤' },
+  { value: 'Sulafat', label: 'Sulafat - 따뜻한 톤' },
+] as const;
 
 /** Normalized rectangle, all values 0..1 relative to image size */
 export interface Box {

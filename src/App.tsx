@@ -7,6 +7,7 @@ import {
   DEFAULT_VIDEO_DUBBING_ENABLED,
   DEFAULT_VIDEO_STEP_SEC,
   DEFAULT_VIDEO_TTS_VOICE,
+  GEMINI_TTS_VOICES,
   newProject,
   uid,
 } from './types';
@@ -478,12 +479,16 @@ export default function App() {
                   </label>
                   <label className="video-export-field compact">
                     <span>TTS 음성</span>
-                    <input
-                      type="text"
+                    <select
                       value={videoTtsVoice}
                       onChange={(e) => updateVideoTtsVoice(e.target.value)}
-                      placeholder={DEFAULT_VIDEO_TTS_VOICE}
-                    />
+                    >
+                      {GEMINI_TTS_VOICES.map((voice) => (
+                        <option key={voice.value} value={voice.value}>
+                          {voice.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </>
               )}

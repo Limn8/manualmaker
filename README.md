@@ -20,7 +20,8 @@ iorad 스타일의 **스크린샷 기반 인터랙티브 매뉴얼 메이커**�
 더빙은 영상 내보내기 팝업에서 `더빙 포함`을 선택한 뒤 Gemini API key를 직접 입력해 사용합니다. 기본값은 더빙 미포함입니다.
 
 - API key 입력 위치: `영상` 버튼 → `더빙 포함` → `Gemini API key`
-- 기본 음성: `Kore`
+- 기본 음성: `Kore - 또렷하고 단단한 톤`
+- 선택 음성: `Puck`, `Aoede`, `Leda`, `Callirrhoe`, `Charon`, `Achird`, `Laomedeia`, `Vindemiatrix`, `Sulafat`
 - Gemini TTS는 `gemini-3.1-flash-tts-preview` 모델을 사용합니다.
 
 ## 개발

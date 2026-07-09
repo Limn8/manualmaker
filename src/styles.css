@@ -976,7 +976,8 @@ body {
   gap: 14px;
 }
 
-.video-export-field input {
+.video-export-field input,
+.video-export-field select {
   width: 100%;
   min-width: 0;
   height: 38px;
@@ -989,7 +990,12 @@ body {
   padding: 0 12px;
 }
 
-.video-export-field input:focus {
+.video-export-field select {
+  cursor: pointer;
+}
+
+.video-export-field input:focus,
+.video-export-field select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.16);
