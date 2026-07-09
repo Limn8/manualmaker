@@ -5,6 +5,7 @@ import { fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const PAGE_W = 1600;
 const PAGE_H = 1000;
+const RASTER_SCALE = 2;
 const CAPTION_H = 150;
 const MARGIN = 40;
 
@@ -46,9 +47,12 @@ export async function exportPdf(
 
 function makeCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = document.createElement('canvas');
-  canvas.width = PAGE_W;
-  canvas.height = PAGE_H;
+  canvas.width = PAGE_W * RASTER_SCALE;
+  canvas.height = PAGE_H * RASTER_SCALE;
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(RASTER_SCALE, RASTER_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, PAGE_W, PAGE_H);
   return [canvas, ctx];
@@ -66,7 +70,7 @@ function renderTitlePage(project: Project): string {
   ctx.font = 'bold 128px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
   wrapText(ctx, project.title, PAGE_W / 2, PAGE_H / 2, PAGE_W - 200, 150);
   ctx.textBaseline = 'alphabetic';
-  return canvas.toDataURL('image/jpeg', 0.9);
+  return canvas.toDataURL('image/jpeg', 0.98);
 }
 
 function renderStepPage(
@@ -143,7 +147,7 @@ function renderStepPage(
   ctx.textAlign = 'right';
   ctx.fillText(`${index + 1} / ${total}`, PAGE_W - MARGIN, capY + CAPTION_H - 28);
 
-  return canvas.toDataURL('image/jpeg', 0.85);
+  return canvas.toDataURL('image/jpeg', 0.98);
 }
 
 function strokeBox(

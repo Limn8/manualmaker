@@ -3,7 +3,6 @@
   CanvasSource,
   Mp4OutputFormat,
   Output,
-  QUALITY_HIGH,
   canEncodeVideo,
 } from 'mediabunny';
 import type { Project } from '../types';
@@ -12,6 +11,8 @@ import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const W = 1280;
 const H = 720;
+const RASTER_SCALE = 1.5;
+const VIDEO_BITRATE = 18_000_000;
 const MIN_CAPTION_H = 84;
 const MAX_CAPTION_H = H - 180;
 const TITLE_SEC = 2.2;
@@ -28,9 +29,12 @@ export async function exportVideo(
   const images = await Promise.all(project.steps.map((s) => loadImage(s.image)));
 
   const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = W * RASTER_SCALE;
+  canvas.height = H * RASTER_SCALE;
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(RASTER_SCALE, RASTER_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   const total = TITLE_SEC + project.steps.length * STEP_SEC;
 
@@ -51,7 +55,7 @@ export async function exportVideo(
   const stream = canvas.captureStream(30);
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,
-    videoBitsPerSecond: 6_000_000,
+    videoBitsPerSecond: 18_000_000,
   });
   const chunks: Blob[] = [];
   recorder.ondataavailable = (e) => {
@@ -424,9 +428,9 @@ async function renderMp4(
   onProgress?: (p: number) => void,
 ): Promise<Blob> {
   const canEncodeAvc = await canEncodeVideo('avc', {
-    width: W,
-    height: H,
-    bitrate: QUALITY_HIGH,
+    width: canvas.width,
+    height: canvas.height,
+    bitrate: VIDEO_BITRATE,
   });
   if (!canEncodeAvc) {
     throw new Error('이 브라우저는 MP4 인코딩을 지원하지 않습니다');
@@ -439,7 +443,7 @@ async function renderMp4(
   });
   const source = new CanvasSource(canvas, {
     codec: 'avc',
-    bitrate: QUALITY_HIGH,
+    bitrate: VIDEO_BITRATE,
     keyFrameInterval: 2,
   });
   output.addVideoTrack(source);
@@ -461,4 +465,3 @@ async function renderMp4(
   }
   return new Blob([target.buffer], { type: 'video/mp4' });
 }
-
