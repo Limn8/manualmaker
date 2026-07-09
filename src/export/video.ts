@@ -7,7 +7,7 @@
 } from 'mediabunny';
 import type { Project } from '../types';
 import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE } from '../types';
-import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
+import { downloadBlob, focusedImageDrawRect, loadImage, sanitizeFilename } from '../utils';
 
 const W = 1280;
 const H = 720;
@@ -146,25 +146,25 @@ export async function exportVideo(
     const capY = H - captionH;
 
     const areaH = H - captionH;
-    const fit = fitRect(img.naturalWidth, img.naturalHeight, W - 40, areaH - 30);
-    const dx = 20 + fit.x;
-    const dy = 15 + fit.y;
-    ctx.drawImage(img, dx, dy, fit.w, fit.h);
+    const draw = focusedImageDrawRect(img.naturalWidth, img.naturalHeight, W - 40, areaH - 30, step.box);
+    const dx = 20 + draw.dx;
+    const dy = 15 + draw.dy;
+    ctx.drawImage(img, draw.sx, draw.sy, draw.sw, draw.sh, dx, dy, draw.dw, draw.dh);
 
     if (step.box) {
-      const bx = dx + step.box.x * fit.w;
-      const by = dy + step.box.y * fit.h;
-      const bw = step.box.w * fit.w;
-      const bh = step.box.h * fit.h;
+      const bx = dx + ((step.box.x * img.naturalWidth - draw.sx) / draw.sw) * draw.dw;
+      const by = dy + ((step.box.y * img.naturalHeight - draw.sy) / draw.sh) * draw.dh;
+      const bw = (step.box.w * img.naturalWidth / draw.sw) * draw.dw;
+      const bh = (step.box.h * img.naturalHeight / draw.sh) * draw.dh;
 
       // dim everything except the highlighted region
       ctx.save();
       ctx.beginPath();
-      ctx.rect(dx, dy, fit.w, fit.h);
+      ctx.rect(dx, dy, draw.dw, draw.dh);
       ctx.rect(bx, by, bw, bh);
       ctx.clip('evenodd');
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fillRect(dx, dy, fit.w, fit.h);
+      ctx.fillRect(dx, dy, draw.dw, draw.dh);
       ctx.restore();
 
       // pulsing border

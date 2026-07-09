@@ -1,7 +1,7 @@
 ﻿import { jsPDF } from 'jspdf';
 import type { Project, Step } from '../types';
 import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE } from '../types';
-import { fitRect, loadImage, sanitizeFilename } from '../utils';
+import { focusedImageDrawRect, loadImage, sanitizeFilename } from '../utils';
 
 const PAGE_W = 1600;
 const PAGE_H = 1000;
@@ -84,24 +84,24 @@ function renderStepPage(
   // image area
   const areaW = PAGE_W - MARGIN * 2;
   const areaH = PAGE_H - CAPTION_H - MARGIN * 2;
-  const fit = fitRect(img.naturalWidth, img.naturalHeight, areaW, areaH);
-  const dx = MARGIN + fit.x;
-  const dy = MARGIN + fit.y;
+  const draw = focusedImageDrawRect(img.naturalWidth, img.naturalHeight, areaW, areaH, step.box);
+  const dx = MARGIN + draw.dx;
+  const dy = MARGIN + draw.dy;
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 24;
-  ctx.drawImage(img, dx, dy, fit.w, fit.h);
+  ctx.drawImage(img, draw.sx, draw.sy, draw.sw, draw.sh, dx, dy, draw.dw, draw.dh);
   ctx.restore();
   ctx.strokeStyle = '#d9dce3';
   ctx.lineWidth = 2;
-  ctx.strokeRect(dx, dy, fit.w, fit.h);
+  ctx.strokeRect(dx, dy, draw.dw, draw.dh);
 
   // highlight box
   if (step.box) {
-    const bx = dx + step.box.x * fit.w;
-    const by = dy + step.box.y * fit.h;
-    const bw = step.box.w * fit.w;
-    const bh = step.box.h * fit.h;
+    const bx = dx + ((step.box.x * img.naturalWidth - draw.sx) / draw.sw) * draw.dw;
+    const by = dy + ((step.box.y * img.naturalHeight - draw.sy) / draw.sh) * draw.dh;
+    const bw = (step.box.w * img.naturalWidth / draw.sw) * draw.dw;
+    const bh = (step.box.h * img.naturalHeight / draw.sh) * draw.dh;
     ctx.save();
     ctx.strokeStyle = step.boxColor ?? DEFAULT_BOX_COLOR;
     ctx.lineWidth = 6;
