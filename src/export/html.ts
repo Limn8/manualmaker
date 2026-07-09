@@ -14,36 +14,38 @@ export async function exportHtml(project: Project): Promise<void> {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${escapeHtml(project.title)}</title>
 <style>
-:root{--bg:#0f1115;--panel:#1a1d24;--text:#e8eaf0;--sub:#9aa3b2;--accent:#4f7cff;--hl:#ff3b30}
+:root{--bg:#f2f4f6;--panel:#ffffff;--fill:#f2f4f6;--fill2:#e5e8eb;--text:#191f28;--text2:#4e5968;--sub:#8b95a1;--accent:#3182f6;--accent2:#1b64da;--tint:#e8f3ff;--danger:#f04452}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI','Malgun Gothic',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--panel);flex-shrink:0}
-header h1{font-size:16px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.count{color:var(--sub);font-size:14px}
-.progress{height:3px;background:#2a2e38;flex-shrink:0}
+body{background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',system-ui,sans-serif;letter-spacing:-.01em;height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--panel);flex-shrink:0}
+header h1{font-size:16px;font-weight:800;letter-spacing:-.02em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.count{color:var(--sub);font-size:13px;font-weight:600}
+.progress{height:3px;background:var(--fill);flex-shrink:0}
 .progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
-main{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;min-height:0}
 .wrap{position:relative;max-width:100%;max-height:100%}
-.wrap img{display:block;max-width:100%;max-height:calc(100vh - 220px);border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);user-select:none}
-.box{position:absolute;border:3px solid var(--hl);border-radius:4px;box-shadow:0 0 0 4px rgba(255,59,48,.25),0 0 20px rgba(255,59,48,.5);animation:pulse 1.4s ease-in-out infinite}
+.wrap img{display:block;max-width:100%;max-height:calc(100vh - 230px);border-radius:14px;box-shadow:0 4px 16px rgba(2,32,71,.08);user-select:none}
+.box{position:absolute;border:3px solid var(--accent);border-radius:6px;animation:pulse 1.5s ease-in-out infinite}
 .box.click{cursor:pointer}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(255,59,48,.25),0 0 20px rgba(255,59,48,.5)}50%{box-shadow:0 0 0 8px rgba(255,59,48,.12),0 0 32px rgba(255,59,48,.7)}}
-footer{background:var(--panel);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;min-height:76px}
-.badge{background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;flex-shrink:0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(49,130,246,.22),0 0 20px rgba(49,130,246,.35)}50%{box-shadow:0 0 0 9px rgba(49,130,246,.1),0 0 32px rgba(49,130,246,.5)}}
+footer{background:var(--panel);padding:16px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0;min-height:80px;border-top:1px solid var(--fill)}
+.badge{background:var(--tint);color:var(--accent);font-size:12px;font-weight:700;padding:4px 11px;border-radius:8px;flex-shrink:0}
 .cap{flex:1;min-width:0}
-.desc{font-size:15px}
-.hint{font-size:12px;color:var(--sub);margin-top:2px}
-button{background:#2a2e38;color:var(--text);border:none;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;font-family:inherit}
-button:hover{background:#343948}
-button.primary{background:var(--accent)}
-button.primary:hover{background:#3d68e8}
-button:disabled{opacity:.4;cursor:default}
-input{background:#0f1115;border:1px solid #343948;color:var(--text);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;width:220px}
-input.wrong{border-color:var(--hl)}
-.done{text-align:center}
-.done .big{font-size:56px;margin-bottom:12px}
-.done h2{margin-bottom:8px}
-.done p{color:var(--sub);margin-bottom:20px}
+.desc{font-size:15px;font-weight:600}
+.hint{font-size:12px;color:var(--sub);margin-top:3px}
+button{background:var(--fill);color:var(--text2);border:none;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:-.01em;transition:background .15s,transform .08s}
+button:hover{background:var(--fill2)}
+button:active{transform:scale(.97)}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent2)}
+button:disabled{opacity:.35;cursor:default}
+input{background:var(--fill);border:1.5px solid transparent;color:var(--text);border-radius:12px;padding:9px 14px;font-size:14px;font-family:inherit;width:220px;transition:background .15s,border-color .15s}
+input:focus{outline:none;background:var(--panel);border-color:var(--accent)}
+input.wrong{border-color:var(--danger);background:#fdecee}
+.done{text-align:center;background:var(--panel);border-radius:24px;padding:52px 64px;box-shadow:0 4px 16px rgba(2,32,71,.08)}
+.done .big{font-size:56px;margin-bottom:14px}
+.done h2{margin-bottom:8px;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.done p{color:var(--sub);margin-bottom:24px;font-size:15px}
 .shake{animation:shake .3s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 </style>

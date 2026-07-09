@@ -1,4 +1,4 @@
-import type { Project } from '../types';
+﻿import type { Project } from '../types';
 import { ACTION_LABELS } from '../types';
 import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
 
@@ -72,7 +72,7 @@ export async function exportVideo(
   );
 
   function draw(t: number) {
-    ctx.fillStyle = '#0f1115';
+    ctx.fillStyle = '#f2f4f6';
     ctx.fillRect(0, 0, W, H);
 
     if (t < TITLE_SEC) {
@@ -92,25 +92,25 @@ export async function exportVideo(
     const alpha = Math.min(1, p * 3);
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 54px "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#191f28';
+    ctx.font = 'bold 54px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
     fillWrapped(project.title, W / 2, H / 2 - 30, W - 200, 66);
-    ctx.font = '26px "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '26px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#8b95a1';
     ctx.fillText(`${project.steps.length}개 스텝 튜토리얼`, W / 2, H / 2 + 60);
-    ctx.fillStyle = '#4f7cff';
+    ctx.fillStyle = '#3182f6';
     ctx.fillRect(W / 2 - 60, H / 2 + 100, 120, 5);
     ctx.globalAlpha = 1;
   }
 
   function drawOutro() {
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 60px "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#191f28';
+    ctx.font = 'bold 60px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
     ctx.fillText('🎉', W / 2, H / 2 - 60);
     ctx.fillText('튜토리얼 완료!', W / 2, H / 2 + 20);
-    ctx.font = '26px "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '26px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#8b95a1';
     ctx.fillText(project.title, W / 2, H / 2 + 70);
   }
 
@@ -147,9 +147,9 @@ export async function exportVideo(
       // pulsing border
       const pulse = 0.5 + 0.5 * Math.sin(p * Math.PI * 4);
       ctx.save();
-      ctx.strokeStyle = '#ff3b30';
+      ctx.strokeStyle = '#3182f6';
       ctx.lineWidth = 4 + pulse * 3;
-      ctx.shadowColor = 'rgba(255,59,48,0.8)';
+      ctx.shadowColor = 'rgba(49,130,246,0.8)';
       ctx.shadowBlur = 10 + pulse * 18;
       ctx.strokeRect(bx, by, bw, bh);
       ctx.restore();
@@ -166,45 +166,50 @@ export async function exportVideo(
         ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, 8 + ripple * 34, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,255,255,${(1 - ripple) * 0.9})`;
+        ctx.strokeStyle = `rgba(49,130,246,${(1 - ripple) * 0.9})`;
         ctx.lineWidth = 3;
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(cx, cy, 7, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+        ctx.strokeStyle = '#3182f6';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
         ctx.restore();
       }
     }
 
     // caption bar
-    ctx.fillStyle = '#1a1d24';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, H - CAPTION_H, W, CAPTION_H);
-    ctx.fillStyle = '#4f7cff';
+    ctx.fillStyle = '#3182f6';
     // progress within the whole video
     ctx.fillRect(0, H - CAPTION_H, W * ((i + p) / project.steps.length), 4);
 
     // badge
     const label = ACTION_LABELS[step.action];
-    ctx.font = 'bold 20px "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.font = 'bold 20px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
     const bw2 = ctx.measureText(label).width + 28;
-    roundRect(24, H - CAPTION_H + 22, bw2, 36, 18);
-    ctx.fillStyle = '#4f7cff';
+    roundRect(24, H - CAPTION_H + 22, bw2, 36, 12);
+    ctx.fillStyle = '#e8f3ff';
     ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#3182f6';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, 38, H - CAPTION_H + 41);
 
     // description
-    ctx.font = '24px "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillStyle = '#e8eaf0';
+    ctx.font = '24px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+    ctx.fillStyle = '#191f28';
     const desc = step.description || '';
     ctx.fillText(truncate(desc, W - bw2 - 180), 38 + bw2 + 16, H - CAPTION_H + 41);
 
     // counter
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#9aa3b2';
+    ctx.fillStyle = '#8b95a1';
     ctx.fillText(`${i + 1} / ${project.steps.length}`, W - 24, H - CAPTION_H + 41);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
