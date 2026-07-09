@@ -22,6 +22,8 @@ import { exportHtml } from './export/html';
 import { exportPdf } from './export/pdf';
 import { exportVideo } from './export/video';
 
+const TTS_SAMPLE_BASE = '/tts-samples';
+
 export default function App() {
   const [project, setProject] = useState<Project>(newProject);
   const [loaded, setLoaded] = useState(false);
@@ -33,10 +35,12 @@ export default function App() {
   const [videoGeminiApiKey, setVideoGeminiApiKey] = useState(
     () => window.localStorage.getItem('manualmaker.geminiApiKey') ?? '',
   );
+  const [playingVoiceSample, setPlayingVoiceSample] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
   const importRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const voiceSampleRef = useRef<HTMLAudioElement | null>(null);
 
   // Load saved project once
   useEffect(() => {
@@ -59,6 +63,13 @@ export default function App() {
     }, 800);
     return () => clearTimeout(t);
   }, [project, loaded]);
+
+  useEffect(() => {
+    return () => {
+      voiceSampleRef.current?.pause();
+      voiceSampleRef.current = null;
+    };
+  }, []);
 
   const addStep = useCallback((image: string) => {
     const step: Step = {
@@ -228,6 +239,48 @@ export default function App() {
   function updateVideoGeminiApiKey(value: string) {
     setVideoGeminiApiKey(value);
     window.localStorage.setItem('manualmaker.geminiApiKey', value);
+  }
+
+  async function playVoiceSample() {
+    voiceSampleRef.current?.pause();
+    voiceSampleRef.current = null;
+    setPlayingVoiceSample(true);
+
+    const sampleUrl = `${TTS_SAMPLE_BASE}/${encodeURIComponent(videoTtsVoice)}.wav`;
+    const audio = new Audio(sampleUrl);
+    voiceSampleRef.current = audio;
+
+    audio.addEventListener(
+      'ended',
+      () => {
+        if (voiceSampleRef.current === audio) {
+          voiceSampleRef.current = null;
+        }
+        setPlayingVoiceSample(false);
+      },
+      { once: true },
+    );
+    audio.addEventListener(
+      'error',
+      () => {
+        if (voiceSampleRef.current === audio) {
+          voiceSampleRef.current = null;
+        }
+        setPlayingVoiceSample(false);
+        alert(`샘플 음성 파일이 없습니다: ${sampleUrl}`);
+      },
+      { once: true },
+    );
+
+    try {
+      await audio.play();
+    } catch (err) {
+      if (voiceSampleRef.current === audio) {
+        voiceSampleRef.current = null;
+      }
+      setPlayingVoiceSample(false);
+      alert('샘플 재생에 실패했습니다: ' + (err instanceof Error ? err.message : String(err)));
+    }
   }
 
   function openVideoExportDialog() {
@@ -477,7 +530,7 @@ export default function App() {
                       placeholder="AIza..."
                     />
                   </label>
-                  <label className="video-export-field compact">
+                  <label className="video-export-field compact voice-preview-row">
                     <span>TTS 음성</span>
                     <select
                       value={videoTtsVoice}
@@ -489,6 +542,16 @@ export default function App() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      className="voice-preview-btn"
+                      onClick={playVoiceSample}
+                      disabled={playingVoiceSample}
+                      title="선택한 음성 샘플 재생"
+                      aria-label="선택한 음성 샘플 재생"
+                    >
+                      {playingVoiceSample ? 'II' : '▶'}
+                    </button>
                   </label>
                 </>
               )}

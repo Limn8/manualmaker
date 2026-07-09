@@ -23,6 +23,8 @@ iorad 스타일의 **스크린샷 기반 인터랙티브 매뉴얼 메이커**�
 - 기본 음성: `Kore - 또렷하고 단단한 톤`
 - 선택 음성: `Puck`, `Aoede`, `Leda`, `Callirrhoe`, `Charon`, `Achird`, `Laomedeia`, `Vindemiatrix`, `Sulafat`
 - Gemini TTS는 `gemini-3.1-flash-tts-preview` 모델을 사용합니다.
+- 음성 선택 옆의 재생 버튼은 `public/tts-samples/{voice}.wav`에 저장된 정적 샘플 파일만 재생합니다. 버튼을 누를 때 Gemini API를 호출하지 않습니다.
+- 샘플 WAV는 `npm run generate:tts-samples` 실행 후 Gemini API key를 한 번 입력해 생성할 수 있으며, 각 파일은 `매뉴얼메이커`를 읽습니다.
 
 ## 개발
 
@@ -30,6 +32,7 @@ iorad 스타일의 **스크린샷 기반 인터랙티브 매뉴얼 메이커**�
 npm install
 npm run dev     # 개발 서버
 npm run build   # 프로덕션 빌드 (dist/)
+npm run generate:tts-samples  # Gemini TTS 음성 샘플 WAV를 한 번 생성
 ```
 
 ## 기술 스택

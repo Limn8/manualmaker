@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "generate:tts-samples": "node scripts/generate-tts-samples.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
