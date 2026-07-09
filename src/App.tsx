@@ -6,6 +6,7 @@ import {
   DEFAULT_INFO_DELAY_SEC,
   DEFAULT_VIDEO_DUBBING_ENABLED,
   DEFAULT_VIDEO_STEP_SEC,
+  DEFAULT_VIDEO_TTS_VOICE,
   newProject,
   uid,
 } from './types';
@@ -205,6 +206,8 @@ export default function App() {
   const selected = project.steps.find((s) => s.id === selectedId) ?? null;
   const videoStepSec = project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC;
   const videoDubbingEnabled = project.videoDubbingEnabled ?? DEFAULT_VIDEO_DUBBING_ENABLED;
+  const videoTtsProxyUrl = project.videoTtsProxyUrl ?? '';
+  const videoTtsVoice = project.videoTtsVoice ?? DEFAULT_VIDEO_TTS_VOICE;
 
   function updateVideoStepSec(value: number) {
     const next = Math.min(30, Math.max(1, Number.isFinite(value) ? value : DEFAULT_VIDEO_STEP_SEC));
@@ -213,6 +216,14 @@ export default function App() {
 
   function updateVideoDubbingEnabled(enabled: boolean) {
     setProject((p) => ({ ...p, videoDubbingEnabled: enabled }));
+  }
+
+  function updateVideoTtsProxyUrl(value: string) {
+    setProject((p) => ({ ...p, videoTtsProxyUrl: value }));
+  }
+
+  function updateVideoTtsVoice(value: string) {
+    setProject((p) => ({ ...p, videoTtsVoice: value }));
   }
 
   function openVideoExportDialog() {
@@ -451,6 +462,28 @@ export default function App() {
                   onChange={(e) => updateVideoDubbingEnabled(e.target.checked)}
                 />
               </label>
+              {videoDubbingEnabled && (
+                <>
+                  <label className="video-export-field">
+                    <span>Apps Script URL</span>
+                    <input
+                      type="url"
+                      value={videoTtsProxyUrl}
+                      onChange={(e) => updateVideoTtsProxyUrl(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                    />
+                  </label>
+                  <label className="video-export-field compact">
+                    <span>Qwen 음성</span>
+                    <input
+                      type="text"
+                      value={videoTtsVoice}
+                      onChange={(e) => updateVideoTtsVoice(e.target.value)}
+                      placeholder={DEFAULT_VIDEO_TTS_VOICE}
+                    />
+                  </label>
+                </>
+              )}
             </div>
             <div className="modal-foot">
               <button className="btn ghost" onClick={() => setShowVideoExportDialog(false)}>

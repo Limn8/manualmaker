@@ -1,21 +1,33 @@
 ﻿import {
+  AudioBufferSource,
   BufferTarget,
   CanvasSource,
   Mp4OutputFormat,
   Output,
+  canEncodeAudio,
   canEncodeVideo,
 } from 'mediabunny';
 import type { Project } from '../types';
-import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE, DEFAULT_VIDEO_STEP_SEC } from '../types';
+import {
+  ACTION_LABELS,
+  DEFAULT_BOX_COLOR,
+  DEFAULT_BOX_SHAPE,
+  DEFAULT_VIDEO_DUBBING_ENABLED,
+  DEFAULT_VIDEO_STEP_SEC,
+  DEFAULT_VIDEO_TTS_VOICE,
+} from '../types';
 import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const W = 1280;
 const H = 720;
 const RASTER_SCALE = 1.5;
 const VIDEO_BITRATE = 18_000_000;
+const AUDIO_BITRATE = 192_000;
 const MIN_CAPTION_H = 84;
 const MAX_CAPTION_H = H - 180;
 const TITLE_SEC = 2.2;
+const TTS_TAIL_SEC = 0.35;
+const TTS_MODEL = 'qwen3-tts-flash';
 
 /**
  * Renders the manual onto a canvas (title card → each step with an animated
@@ -35,14 +47,34 @@ export async function exportVideo(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   const stepSec = Math.min(30, Math.max(1, project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC));
+  const dubbingEnabled = project.videoDubbingEnabled ?? DEFAULT_VIDEO_DUBBING_ENABLED;
+  const narrations = dubbingEnabled
+    ? await fetchNarrations(project, (p) => onProgress?.(p * 0.2))
+    : null;
+  const stepDurations = project.steps.map((_, index) => {
+    const audioDuration = narrations?.buffers[index]?.duration ?? 0;
+    return Math.max(stepSec, audioDuration + TTS_TAIL_SEC);
+  });
+  const stepOffsets = makeStepOffsets(stepDurations);
+  const stepsTotal = stepDurations.reduce((sum, duration) => sum + duration, 0);
+  const narrationAudio = narrations
+    ? makeTimelineAudio(narrations.context, narrations.buffers, stepOffsets, TITLE_SEC + stepsTotal)
+    : null;
 
-  const total = TITLE_SEC + project.steps.length * stepSec;
+  const total = TITLE_SEC + stepsTotal;
 
   try {
-    const mp4 = await renderMp4(canvas, draw, total, onProgress);
+    const mp4 = await renderMp4(canvas, draw, total, narrationAudio, (p) => {
+      onProgress?.(narrations ? 0.2 + p * 0.8 : p);
+    });
     downloadBlob(sanitizeFilename(project.title) + '.mp4', mp4);
+    narrations?.context.close().catch(() => {});
     return;
   } catch (err) {
+    if (narrationAudio) {
+      narrations?.context.close().catch(() => {});
+      throw err;
+    }
     console.warn('MP4 export unavailable; falling back to WebM.', err);
   }
 
@@ -90,6 +122,7 @@ export async function exportVideo(
     sanitizeFilename(project.title) + '.webm',
     new Blob(chunks, { type: 'video/webm' }),
   );
+  narrations?.context.close().catch(() => {});
 
   function draw(t: number) {
     ctx.fillStyle = '#f2f4f6';
@@ -100,12 +133,14 @@ export async function exportVideo(
       return;
     }
     const st = t - TITLE_SEC;
-    const stepIdx = Math.floor(st / stepSec);
+    const stepIdx = findStepIndex(st, stepOffsets, stepDurations);
     if (stepIdx >= project.steps.length) {
       drawStep(project.steps.length - 1, 1);
       return;
     }
-    drawStep(stepIdx, (st - stepIdx * stepSec) / stepSec);
+    const stepStart = stepOffsets[stepIdx];
+    const stepDuration = stepDurations[stepIdx] || stepSec;
+    drawStep(stepIdx, (st - stepStart) / stepDuration);
   }
 
   function drawTitleCard(p: number) {
@@ -425,6 +460,7 @@ async function renderMp4(
   canvas: HTMLCanvasElement,
   draw: (time: number) => void,
   total: number,
+  audioBuffer: AudioBuffer | null,
   onProgress?: (p: number) => void,
 ): Promise<Blob> {
   const canEncodeAvc = await canEncodeVideo('avc', {
@@ -434,6 +470,16 @@ async function renderMp4(
   });
   if (!canEncodeAvc) {
     throw new Error('이 브라우저는 MP4 인코딩을 지원하지 않습니다');
+  }
+  if (audioBuffer) {
+    const canEncodeAac = await canEncodeAudio('aac', {
+      numberOfChannels: audioBuffer.numberOfChannels,
+      sampleRate: audioBuffer.sampleRate,
+      bitrate: AUDIO_BITRATE,
+    });
+    if (!canEncodeAac) {
+      throw new Error('이 브라우저는 더빙 포함 MP4 인코딩을 지원하지 않습니다');
+    }
   }
 
   const target = new BufferTarget();
@@ -447,7 +493,17 @@ async function renderMp4(
     keyFrameInterval: 2,
   });
   output.addVideoTrack(source);
+  const audioSource = audioBuffer
+    ? new AudioBufferSource({
+        codec: 'aac',
+        bitrate: AUDIO_BITRATE,
+      })
+    : null;
+  if (audioSource) output.addAudioTrack(audioSource);
   await output.start();
+  if (audioBuffer && audioSource) {
+    await audioSource.add(audioBuffer);
+  }
 
   const frameRate = 30;
   const frameDuration = 1 / frameRate;
@@ -464,4 +520,167 @@ async function renderMp4(
     throw new Error('MP4 파일 생성에 실패했습니다');
   }
   return new Blob([target.buffer], { type: 'video/mp4' });
+}
+
+type NarrationResult = {
+  context: AudioContext;
+  buffers: AudioBuffer[];
+};
+
+async function fetchNarrations(
+  project: Project,
+  onProgress?: (p: number) => void,
+): Promise<NarrationResult> {
+  const proxyUrl = project.videoTtsProxyUrl?.trim();
+  if (!proxyUrl) {
+    throw new Error('더빙을 포함하려면 영상 내보내기 창에 Apps Script URL을 입력하세요.');
+  }
+
+  const AudioContextCtor = window.AudioContext;
+  if (!AudioContextCtor) {
+    throw new Error('이 브라우저는 오디오 더빙을 지원하지 않습니다.');
+  }
+
+  const context = new AudioContextCtor();
+  const voice = project.videoTtsVoice?.trim() || DEFAULT_VIDEO_TTS_VOICE;
+  const buffers: AudioBuffer[] = [];
+
+  try {
+    for (let i = 0; i < project.steps.length; i++) {
+      const step = project.steps[i];
+      const audioBytes = await requestNarrationAudio(proxyUrl, {
+        text: makeNarrationText(project, i),
+        voice,
+        model: TTS_MODEL,
+        language_type: 'Korean',
+        step: i + 1,
+        total: project.steps.length,
+        action: step.action,
+      });
+      buffers.push(await context.decodeAudioData(audioBytes.slice(0)));
+      onProgress?.((i + 1) / project.steps.length);
+    }
+  } catch (err) {
+    await context.close().catch(() => {});
+    throw err;
+  }
+
+  return { context, buffers };
+}
+
+function makeNarrationText(project: Project, index: number): string {
+  const step = project.steps[index];
+  const description = step.description.trim();
+  const fallback = `${index + 1}단계. ${ACTION_LABELS[step.action]}합니다.`;
+  const text = description || fallback;
+  return text.length > 600 ? text.slice(0, 600) : text;
+}
+
+async function requestNarrationAudio(
+  proxyUrl: string,
+  payload: Record<string, unknown>,
+): Promise<ArrayBuffer> {
+  const response = await fetch(proxyUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+  });
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.startsWith('audio/')) {
+    if (!response.ok) throw new Error(`TTS 요청 실패 (${response.status})`);
+    return response.arrayBuffer();
+  }
+
+  const raw = await response.text();
+  let data: TtsProxyResponse;
+  try {
+    data = JSON.parse(raw) as TtsProxyResponse;
+  } catch {
+    throw new Error(`TTS 응답을 해석할 수 없습니다: ${raw.slice(0, 120)}`);
+  }
+  if (!response.ok || data.ok === false || data.error) {
+    throw new Error(data.error || `TTS 요청 실패 (${response.status})`);
+  }
+
+  const base64 = data.audioBase64 ?? data.audio?.base64 ?? data.audio?.data;
+  if (base64) return base64ToArrayBuffer(base64);
+
+  const audioUrl = data.audioUrl ?? data.url ?? data.audio?.url;
+  if (audioUrl) {
+    const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) throw new Error(`TTS 오디오 다운로드 실패 (${audioResponse.status})`);
+    return audioResponse.arrayBuffer();
+  }
+
+  throw new Error('TTS 응답에 audioBase64 또는 audioUrl이 없습니다.');
+}
+
+type TtsProxyResponse = {
+  ok?: boolean;
+  error?: string;
+  audioBase64?: string;
+  audioUrl?: string;
+  url?: string;
+  audio?: {
+    base64?: string;
+    data?: string;
+    url?: string;
+  };
+};
+
+function base64ToArrayBuffer(value: string): ArrayBuffer {
+  const base64 = value.includes(',') ? value.slice(value.indexOf(',') + 1) : value;
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function makeStepOffsets(stepDurations: readonly number[]): number[] {
+  const offsets: number[] = [];
+  let cursor = 0;
+  for (const duration of stepDurations) {
+    offsets.push(cursor);
+    cursor += duration;
+  }
+  return offsets;
+}
+
+function findStepIndex(
+  time: number,
+  stepOffsets: readonly number[],
+  stepDurations: readonly number[],
+): number {
+  for (let i = 0; i < stepOffsets.length; i++) {
+    if (time < stepOffsets[i] + stepDurations[i]) return i;
+  }
+  return stepOffsets.length;
+}
+
+function makeTimelineAudio(
+  context: AudioContext,
+  buffers: readonly AudioBuffer[],
+  stepOffsets: readonly number[],
+  total: number,
+): AudioBuffer {
+  const sampleRate = context.sampleRate;
+  const channels = Math.max(1, ...buffers.map((buffer) => buffer.numberOfChannels));
+  const length = Math.ceil(total * sampleRate);
+  const timeline = context.createBuffer(channels, length, sampleRate);
+
+  buffers.forEach((buffer, index) => {
+    const start = Math.floor((TITLE_SEC + stepOffsets[index]) * sampleRate);
+    const copyLength = Math.min(buffer.length, length - start);
+    if (copyLength <= 0) return;
+    for (let ch = 0; ch < channels; ch++) {
+      const source = buffer.getChannelData(Math.min(ch, buffer.numberOfChannels - 1));
+      timeline.getChannelData(ch).set(source.subarray(0, copyLength), start);
+    }
+  });
+
+  return timeline;
 }

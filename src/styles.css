@@ -903,7 +903,7 @@ body {
 }
 
 .video-export-modal {
-  width: min(420px, 94vw);
+  width: min(520px, 94vw);
 }
 
 .video-export-options {
@@ -955,6 +955,44 @@ body {
   width: 20px;
   height: 20px;
   accent-color: var(--accent);
+}
+
+.video-export-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.video-export-field.compact {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.video-export-field input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+.video-export-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.16);
 }
 
 /* ---------- Player ---------- */
