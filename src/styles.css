@@ -73,16 +73,6 @@ body {
   margin-right: 6px;
 }
 
-.creator-mark {
-  color: var(--text-2);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  background: var(--fill);
-  border-radius: 999px;
-  padding: 6px 10px;
-}
-
 .title-input {
   flex: 1;
   min-width: 120px;
@@ -394,6 +384,16 @@ body {
   color: var(--text);
 }
 
+.step-add.copy {
+  background: #e5f9f1;
+  color: #008b55;
+}
+
+.step-add.copy:hover:not(:disabled) {
+  background: #d3f3e5;
+  color: #006f45;
+}
+
 /* ---------- Action badge ---------- */
 .action-badge {
   display: inline-block;
@@ -599,7 +599,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .color-swatch,
@@ -632,6 +632,35 @@ body {
   font-weight: 600;
 }
 
+.box-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.compact-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.compact-setting > span {
+  color: var(--sub);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.action-picker.compact .chip {
+  padding: 7px 12px;
+}
+
+.switch-row.icon-only {
+  gap: 0;
+}
+
 .delay-input {
   width: 72px;
   background: var(--fill);
@@ -652,6 +681,27 @@ body {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
+}
+
+.creator-link {
+  position: fixed;
+  left: 18px;
+  bottom: 14px;
+  z-index: 90;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.creator-link:hover {
+  color: var(--accent);
+  background: var(--surface);
 }
 
 .text-input {

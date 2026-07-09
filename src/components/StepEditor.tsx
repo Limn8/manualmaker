@@ -238,50 +238,54 @@ export default function StepEditor({ step, index, total, onChange, onRecrop }: P
           </div>
         </div>
         <div className="field">
-          <label>박스 색</label>
-          <div className="color-controls">
-            {BOX_COLOR_PRESETS.map((color) => (
-              <button
-                key={color}
-                className={'color-swatch' + (boxColor === color ? ' active' : '')}
-                style={{ backgroundColor: color }}
-                title={color}
-                onClick={() => onChange({ boxColor: color })}
-              />
-            ))}
-            <input
-              className="color-input"
-              type="color"
-              value={boxColor}
-              onChange={(e) => onChange({ boxColor: e.target.value })}
-              title="직접 색 선택"
-            />
+          <label>박스 설정</label>
+          <div className="box-settings-row">
+            <div className="compact-setting">
+              <span>색</span>
+              <div className="color-controls">
+                {BOX_COLOR_PRESETS.map((color) => (
+                  <button
+                    key={color}
+                    className={'color-swatch' + (boxColor === color ? ' active' : '')}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                    onClick={() => onChange({ boxColor: color })}
+                  />
+                ))}
+                <input
+                  className="color-input"
+                  type="color"
+                  value={boxColor}
+                  onChange={(e) => onChange({ boxColor: e.target.value })}
+                  title="직접 색 선택"
+                />
+              </div>
+            </div>
+            <div className="compact-setting">
+              <span>모양</span>
+              <div className="action-picker compact">
+                {(Object.keys(BOX_SHAPE_LABELS) as BoxShape[]).map((shape) => (
+                  <button
+                    key={shape}
+                    className={'chip' + (boxShape === shape ? ' active' : '')}
+                    onClick={() => onChange({ boxShape: shape })}
+                  >
+                    {BOX_SHAPE_LABELS[shape]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="compact-setting">
+              <span>설명탭</span>
+              <label className="switch-row icon-only">
+                <input
+                  type="checkbox"
+                  checked={showBoxLabel}
+                  onChange={(e) => onChange({ showBoxLabel: e.target.checked })}
+                />
+              </label>
+            </div>
           </div>
-        </div>
-        <div className="field">
-          <label>박스 모양</label>
-          <div className="action-picker">
-            {(Object.keys(BOX_SHAPE_LABELS) as BoxShape[]).map((shape) => (
-              <button
-                key={shape}
-                className={'chip' + (boxShape === shape ? ' active' : '')}
-                onClick={() => onChange({ boxShape: shape })}
-              >
-                {BOX_SHAPE_LABELS[shape]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="field">
-          <label>설명탭</label>
-          <label className="switch-row">
-            <input
-              type="checkbox"
-              checked={showBoxLabel}
-              onChange={(e) => onChange({ showBoxLabel: e.target.checked })}
-            />
-            <span>박스 우측하단 아이콘과 문구 표시</span>
-          </label>
         </div>
         {step.action === 'info' && (
           <div className="field">

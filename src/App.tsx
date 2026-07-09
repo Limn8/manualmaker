@@ -246,7 +246,6 @@ export default function App() {
         <div className="brand">
           ManualMaker
         </div>
-        <div className="creator-mark">제작: 경기이음온학교 임현우</div>
         <input
           className="title-input"
           value={project.title}
@@ -258,7 +257,7 @@ export default function App() {
             🖥️ 화면 캡처
           </button>
           <button className="btn" onClick={handlePasteClipboard} title="클립보드의 이미지 가져오기 (Ctrl+V도 가능)">
-            📋 붙여넣기
+            📋 클립보드
           </button>
           <button className="btn" onClick={handlePickFile} title="이미지 파일 업로드">
             📁 파일
@@ -356,7 +355,7 @@ export default function App() {
                     🖥️ 화면 캡처
                   </button>
                   <button className="btn big" onClick={handlePasteClipboard}>
-                    📋 붙여넣기
+                    📋 클립보드
                   </button>
                   <button className="btn big" onClick={handlePickFile}>
                     📁 파일 업로드
@@ -367,6 +366,10 @@ export default function App() {
           )}
         </div>
       </div>
+
+      <a className="creator-link" href="https://litt.ly/limn8" target="_blank" rel="noreferrer">
+        제작: 경기이음온학교 임현우
+      </a>
 
       {cropImage && (
         <CropModal

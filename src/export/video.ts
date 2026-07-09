@@ -15,11 +15,10 @@ const H = 720;
 const CAPTION_H = 84;
 const TITLE_SEC = 2.2;
 const STEP_SEC = 3.6;
-const OUTRO_SEC = 2.0;
 
 /**
  * Renders the tutorial onto a canvas (title card → each step with an animated
- * highlight → outro) and exports MP4 when WebCodecs can encode it.
+ * highlight) and exports MP4 when WebCodecs can encode it.
  */
 export async function exportVideo(
   project: Project,
@@ -32,7 +31,7 @@ export async function exportVideo(
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  const total = TITLE_SEC + project.steps.length * STEP_SEC + OUTRO_SEC;
+  const total = TITLE_SEC + project.steps.length * STEP_SEC;
 
   try {
     const mp4 = await renderMp4(canvas, draw, total, onProgress);
@@ -98,7 +97,7 @@ export async function exportVideo(
     const st = t - TITLE_SEC;
     const stepIdx = Math.floor(st / STEP_SEC);
     if (stepIdx >= project.steps.length) {
-      drawOutro();
+      drawStep(project.steps.length - 1, 1);
       return;
     }
     drawStep(stepIdx, (st - stepIdx * STEP_SEC) / STEP_SEC);
@@ -110,25 +109,12 @@ export async function exportVideo(
     ctx.textAlign = 'center';
     ctx.fillStyle = '#191f28';
     ctx.font = 'bold 54px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    fillWrapped(project.title, W / 2, H / 2 - 30, W - 200, 66);
-    ctx.font = '26px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillStyle = '#8b95a1';
-    ctx.fillText(`${project.steps.length}개 단계 튜토리얼`, W / 2, H / 2 + 60);
+    fillWrapped(project.title, W / 2, H / 2 - 20, W - 200, 66);
     ctx.fillStyle = '#3182f6';
-    ctx.fillRect(W / 2 - 60, H / 2 + 100, 120, 5);
+    ctx.fillRect(W / 2 - 60, H / 2 + 56, 120, 5);
     ctx.globalAlpha = 1;
   }
 
-  function drawOutro() {
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#191f28';
-    ctx.font = 'bold 60px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillText('🎉', W / 2, H / 2 - 60);
-    ctx.fillText('튜토리얼 완료!', W / 2, H / 2 + 20);
-    ctx.font = '26px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    ctx.fillStyle = '#8b95a1';
-    ctx.fillText(project.title, W / 2, H / 2 + 70);
-  }
 
   function drawStep(i: number, p: number) {
     const step = project.steps[i];
@@ -450,3 +436,4 @@ async function renderMp4(
   }
   return new Blob([target.buffer], { type: 'video/mp4' });
 }
+

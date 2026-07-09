@@ -114,18 +114,18 @@ export default function StepList({
             🖥️ 캡처
           </button>
           <button className="step-add" onClick={onPaste} title="클립보드 이미지로 단계 추가">
-            📋 붙여넣기
+            📋 클립보드
           </button>
           <button className="step-add" onClick={onFile} title="이미지 파일로 단계 추가">
             📁 파일
           </button>
           <button
-            className="step-add"
+            className="step-add copy"
             onClick={onDuplicatePrevious}
             disabled={steps.length === 0}
             title="현재 단계 또는 마지막 단계를 복사"
           >
-            이전 페이지 복사
+            페이지 복사
           </button>
         </div>
       </div>
