@@ -33,6 +33,9 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;
 .box.click{cursor:pointer}
 .box-tag{position:absolute;top:100%;right:0;margin-top:7px;display:inline-flex;align-items:center;gap:5px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:4px 9px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 12px rgba(49,130,246,.35);pointer-events:none}
 .box-tag svg{display:block}
+.box-type{position:absolute;left:10px;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;pointer-events:auto}
+.box-type input{width:100%;min-width:120px;background:rgba(255,255,255,.96);border-color:rgba(49,130,246,.32);box-shadow:0 4px 16px rgba(2,32,71,.08)}
+.wrong-msg{color:var(--danger);font-size:12px;font-weight:700;background:rgba(255,255,255,.9);border-radius:8px;padding:2px 6px;width:max-content;max-width:100%}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(49,130,246,.22),0 0 20px rgba(49,130,246,.35)}50%{box-shadow:0 0 0 9px rgba(49,130,246,.1),0 0 32px rgba(49,130,246,.5)}}
 footer{background:var(--panel);padding:16px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0;min-height:80px;border-top:1px solid var(--fill)}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--tint);color:var(--accent);font-size:12px;font-weight:700;padding:4px 11px;border-radius:8px;flex-shrink:0}
@@ -123,6 +126,26 @@ function bindBox(s){
   boxUnbind=function(){hs.forEach(function(h){box.removeEventListener(h[0],h[1],h[2]);});};
 }
 
+function bindTypeInput(s){
+  var ti=document.getElementById('ti');
+  var wrong=document.getElementById('wrong');
+  if(!ti)return;
+  ti.focus();
+  ti.addEventListener('click',function(e){e.stopPropagation();});
+  ti.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var expected=(s.typeText||'').trim();
+    if(expected&&ti.value.trim()!==expected){
+      ti.classList.add('wrong','shake');
+      if(wrong)wrong.style.display='';
+      setTimeout(function(){ti.classList.remove('shake')},350);
+      return;
+    }
+    advance();
+  });
+  ti.addEventListener('input',function(){ti.classList.remove('wrong');if(wrong)wrong.style.display='none';});
+}
+
 document.addEventListener('keydown',function(e){
   if(e.key==='ArrowRight'&&document.activeElement.tagName!=='INPUT')advance();
   if(e.key==='ArrowLeft'&&document.activeElement.tagName!=='INPUT')back();
@@ -172,8 +195,12 @@ function render(){
     box.style.borderRadius=boxRadius(shape);
     box.className='box'+(clickable?' click':'');
     box.innerHTML=s.showBoxLabel===false?'':'<span class="box-tag" style="background:'+esc(color)+'">'+icon(s.action,13)+'<span>'+LABELS[s.action]+'</span></span>';
+    if(s.action==='type'){
+      box.innerHTML='<span class="box-type"><input id="ti" placeholder="'+esc(s.typeText||'텍스트 입력 후 Enter')+'" /><span id="wrong" class="wrong-msg" style="display:none">입력이 일치하지 않습니다</span></span>'+box.innerHTML;
+    }
     box.style.opacity='1';
     bindBox(s);
+    if(s.action==='type')setTimeout(function(){bindTypeInput(s);},0);
     prevBox=true;
   }else{
     box.style.opacity='0';
@@ -186,23 +213,13 @@ function render(){
   footer.innerHTML='<span class="badge">'+icon(s.action,13)+esc(LABELS[s.action])+'</span>'
     +'<div class="cap"><div class="desc">'+esc(s.description||hint)+'</div>'
     +(s.description?'<div class="hint">'+esc(hint)+'</div>':'')+'</div>'
-    +(s.action==='type'?'<span><input id="ti" placeholder="'+esc(s.typeText||'텍스트 입력 후 Enter')+'" /></span>':'')
+    +(s.action==='type'&&!s.box?'<span><input id="ti" placeholder="'+esc(s.typeText||'텍스트 입력 후 Enter')+'" /></span>':'')
     +'<button id="prev" '+(idx===0?'disabled':'')+'>← 이전</button>'
     +(needNext?'<button id="next" class="primary">다음 →</button>':'<button id="next">건너뛰기</button>');
   document.getElementById('prev').onclick=back;
   document.getElementById('next').onclick=advance;
   var ti=document.getElementById('ti');
-  if(ti){
-    ti.focus();
-    ti.addEventListener('keydown',function(e){
-      if(e.key!=='Enter')return;
-      var expected=(s.typeText||'').trim();
-      if(expected&&ti.value.trim()!==expected){ti.classList.add('wrong','shake');setTimeout(function(){ti.classList.remove('shake')},350);return;}
-      if(!ti.value.trim()){ti.classList.add('wrong','shake');setTimeout(function(){ti.classList.remove('shake')},350);return;}
-      advance();
-    });
-    ti.addEventListener('input',function(){ti.classList.remove('wrong')});
-  }
+  if(ti&&!s.box)bindTypeInput(s);
   if(s.action==='info') infoTimer=setTimeout(advance, infoDelay*1000);
   setActiveDash(idx);
 }

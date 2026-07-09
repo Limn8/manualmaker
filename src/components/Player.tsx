@@ -147,6 +147,24 @@ export default function Player({ project, onClose }: Props) {
                       if (step.action === 'scroll') advance();
                     }}
                   >
+                    {step.action === 'type' && (
+                      <div className="player-box-type" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          className={'text-input' + (wrong ? ' wrong' : '')}
+                          autoFocus
+                          value={typed}
+                          placeholder={step.typeText || '텍스트 입력 후 Enter'}
+                          onChange={(e) => {
+                            setTyped(e.target.value);
+                            setWrong(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') submitTyped();
+                          }}
+                        />
+                        {wrong && <span className="wrong-msg">입력이 일치하지 않습니다</span>}
+                      </div>
+                    )}
                     {step.showBoxLabel !== false && (
                       <span
                         className="box-tag"
@@ -174,7 +192,7 @@ export default function Player({ project, onClose }: Props) {
                   <div className="player-hint">{actionHint}</div>
                 )}
               </div>
-              {step.action === 'type' && (
+              {step.action === 'type' && !step.box && (
                 <div className="player-type">
                   <input
                     className={'text-input' + (wrong ? ' wrong' : '')}
@@ -211,6 +229,19 @@ export default function Player({ project, onClose }: Props) {
                   </button>
                 )}
               </div>
+            </div>
+            <div className="player-dashboard" aria-label="단계 이동">
+              {steps.map((s, i) => (
+                <button
+                  key={s.id}
+                  className={'player-dash-item' + (i === index ? ' active' : '')}
+                  onClick={() => setIndex(i)}
+                  title={`단계 ${i + 1}로 이동`}
+                >
+                  <img src={s.image} alt="" draggable={false} />
+                  <span>{i + 1}</span>
+                </button>
+              ))}
             </div>
           </>
         )
