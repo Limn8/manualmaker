@@ -4,6 +4,7 @@ import {
   DEFAULT_BOX_COLOR,
   DEFAULT_BOX_SHAPE,
   DEFAULT_INFO_DELAY_SEC,
+  DEFAULT_VIDEO_DUBBING_ENABLED,
   DEFAULT_VIDEO_STEP_SEC,
   newProject,
   uid,
@@ -26,6 +27,7 @@ export default function App() {
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [recropId, setRecropId] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showVideoExportDialog, setShowVideoExportDialog] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
   const importRef = useRef<HTMLInputElement>(null);
@@ -202,10 +204,28 @@ export default function App() {
 
   const selected = project.steps.find((s) => s.id === selectedId) ?? null;
   const videoStepSec = project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC;
+  const videoDubbingEnabled = project.videoDubbingEnabled ?? DEFAULT_VIDEO_DUBBING_ENABLED;
 
   function updateVideoStepSec(value: number) {
     const next = Math.min(30, Math.max(1, Number.isFinite(value) ? value : DEFAULT_VIDEO_STEP_SEC));
     setProject((p) => ({ ...p, videoStepSec: next }));
+  }
+
+  function updateVideoDubbingEnabled(enabled: boolean) {
+    setProject((p) => ({ ...p, videoDubbingEnabled: enabled }));
+  }
+
+  function openVideoExportDialog() {
+    if (project.steps.length === 0) {
+      alert('내보낼 단계가 없습니다. 먼저 화면을 캡처하세요.');
+      return;
+    }
+    setShowVideoExportDialog(true);
+  }
+
+  async function startVideoExport() {
+    setShowVideoExportDialog(false);
+    await handleExport('video');
   }
 
   async function handleExport(kind: 'html' | 'pdf' | 'video') {
@@ -302,19 +322,7 @@ export default function App() {
           <button className="btn" disabled={!!exporting} onClick={() => handleExport('pdf')}>
             PDF
           </button>
-          <label className="video-duration-control" title="영상 내보내기에서 각 화면이 유지되는 시간">
-            <span>영상</span>
-            <input
-              type="number"
-              min={1}
-              max={30}
-              step={0.5}
-              value={videoStepSec}
-              onChange={(e) => updateVideoStepSec(Number(e.target.value))}
-            />
-            <span>초/화면</span>
-          </label>
-          <button className="btn" disabled={!!exporting} onClick={() => handleExport('video')}>
+          <button className="btn" disabled={!!exporting} onClick={openVideoExportDialog}>
             영상
           </button>
           <div className="divider" />
@@ -411,6 +419,51 @@ export default function App() {
         />
       )}
       {showPlayer && <Player project={project} onClose={() => setShowPlayer(false)} />}
+      {showVideoExportDialog && (
+        <div className="modal-overlay" onClick={() => setShowVideoExportDialog(false)}>
+          <div className="modal video-export-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>영상 내보내기</h3>
+              <button className="icon-btn" onClick={() => setShowVideoExportDialog(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="video-export-options">
+              <label className="video-export-row">
+                <span>화면당 시간</span>
+                <div className="video-export-number">
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    step={0.5}
+                    value={videoStepSec}
+                    onChange={(e) => updateVideoStepSec(Number(e.target.value))}
+                  />
+                  <span>초</span>
+                </div>
+              </label>
+              <label className="video-export-row check-row">
+                <span>더빙 포함</span>
+                <input
+                  type="checkbox"
+                  checked={videoDubbingEnabled}
+                  onChange={(e) => updateVideoDubbingEnabled(e.target.checked)}
+                />
+              </label>
+            </div>
+            <div className="modal-foot">
+              <button className="btn ghost" onClick={() => setShowVideoExportDialog(false)}>
+                취소
+              </button>
+              <div style={{ flex: 1 }} />
+              <button className="btn primary" onClick={startVideoExport}>
+                내보내기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {exporting && (
         <div className="export-overlay">
           <div className="export-box">

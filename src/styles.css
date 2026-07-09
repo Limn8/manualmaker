@@ -114,37 +114,6 @@ body {
   margin-left: auto;
 }
 
-.video-duration-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 6px 10px;
-  background: var(--fill);
-  color: var(--text-2);
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.video-duration-control input {
-  width: 52px;
-  height: 28px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font: inherit;
-  text-align: center;
-}
-
-.video-duration-control input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.16);
-}
-
 .divider {
   width: 1px;
   height: 22px;
@@ -933,6 +902,61 @@ body {
   box-shadow: 0 0 0 9999px rgba(25, 31, 40, 0.45);
 }
 
+.video-export-modal {
+  width: min(420px, 94vw);
+}
+
+.video-export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.video-export-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 48px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.video-export-number {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.video-export-number input {
+  width: 76px;
+  height: 34px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+}
+
+.video-export-number input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.16);
+}
+
+.check-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
 /* ---------- Player ---------- */
 .player-overlay {
   position: fixed;
@@ -1294,11 +1318,6 @@ body {
     padding: 10px 12px;
   }
 
-  .video-duration-control {
-    flex: 1 1 136px;
-    justify-content: center;
-  }
-
   .topbar-actions .divider {
     display: none;
   }
@@ -1492,12 +1511,6 @@ body {
     min-width: max-content;
     padding: 9px 8px;
     font-size: 12px;
-  }
-
-  .video-duration-control {
-    flex: 0 0 auto;
-    min-height: 34px;
-    padding: 5px 8px;
   }
 
   .topbar-actions {
