@@ -589,7 +589,9 @@ async function requestGeminiNarrationAudio(
       input: `한국어로 자연스럽게 읽어줘: ${payload.text}`,
       response_format: {
         type: 'audio',
+        sample_rate: GEMINI_PCM_SAMPLE_RATE,
       },
+      store: false,
       generation_config: {
         speech_config: [
           {
@@ -610,22 +612,80 @@ async function requestGeminiNarrationAudio(
     throw new Error(data.error?.message || `Gemini TTS 요청 실패 (${response.status})`);
   }
 
-  const pcmBase64 = data.output_audio?.data;
-  if (!pcmBase64) throw new Error('Gemini TTS 응답에 output_audio.data가 없습니다.');
-  return pcmBase64ToWavArrayBuffer(pcmBase64);
+  const audio = extractGeminiAudio(data);
+  if (!audio?.data) {
+    throw new Error(`Gemini TTS 응답에 오디오 데이터가 없습니다: ${summarizeGeminiResponse(data)}`);
+  }
+  return audioBase64ToArrayBuffer(audio.data, audio.mime_type);
 }
 
 type GeminiTtsResponse = {
   output_audio?: {
     data?: string;
+    mime_type?: string;
   };
+  steps?: Array<{
+    type?: string;
+    error?: {
+      message?: string;
+    };
+    content?: Array<{
+      type?: string;
+      data?: string;
+      mime_type?: string;
+    }>;
+  }>;
+  status?: string;
   error?: {
     message?: string;
   };
 };
 
-function pcmBase64ToWavArrayBuffer(value: string): ArrayBuffer {
-  const pcm = base64ToBytes(value);
+function extractGeminiAudio(data: GeminiTtsResponse): { data: string; mime_type?: string } | null {
+  if (data.output_audio?.data) {
+    return { data: data.output_audio.data, mime_type: data.output_audio.mime_type };
+  }
+  for (const step of data.steps ?? []) {
+    for (const content of step.content ?? []) {
+      if (content.type === 'audio' && content.data) {
+        return { data: content.data, mime_type: content.mime_type };
+      }
+    }
+  }
+  return null;
+}
+
+function summarizeGeminiResponse(data: GeminiTtsResponse): string {
+  const stepError = data.steps?.find((step) => step.error?.message)?.error?.message;
+  const contentTypes = data.steps
+    ?.flatMap((step) => step.content ?? [])
+    .map((content) => content.type)
+    .filter(Boolean)
+    .join(', ');
+  return [
+    data.status ? `status=${data.status}` : '',
+    stepError ? `stepError=${stepError}` : '',
+    contentTypes ? `contentTypes=${contentTypes}` : '',
+  ]
+    .filter(Boolean)
+    .join(' / ') || 'empty response';
+}
+
+function audioBase64ToArrayBuffer(value: string, mimeType?: string): ArrayBuffer {
+  const bytes = base64ToBytes(value);
+  if (mimeType?.includes('wav') || mimeType?.includes('mpeg') || mimeType?.includes('mp3')) {
+    return copyToArrayBuffer(bytes);
+  }
+  return pcmBytesToWavArrayBuffer(bytes);
+}
+
+function copyToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+function pcmBytesToWavArrayBuffer(pcm: Uint8Array): ArrayBuffer {
   const header = makeWavHeader(pcm.byteLength);
   const wav = new Uint8Array(header.byteLength + pcm.byteLength);
   wav.set(header, 0);
