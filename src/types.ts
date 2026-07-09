@@ -55,6 +55,7 @@ export const BOX_COLOR_PRESETS = ['#3182f6', '#f04452', '#00a661', '#8b5cf6', '#
 export const DEFAULT_BOX_COLOR = BOX_COLOR_PRESETS[0];
 export const DEFAULT_BOX_SHAPE: BoxShape = 'rounded';
 export const DEFAULT_INFO_DELAY_SEC = 3;
+export const DEFAULT_VIDEO_STEP_SEC = 5;
 
 /** Normalized rectangle, all values 0..1 relative to image size */
 export interface Box {
@@ -82,6 +83,7 @@ export interface Step {
 export interface Project {
   title: string;
   steps: Step[];
+  videoStepSec?: number;
 }
 
 export function uid(): string {
@@ -89,5 +91,5 @@ export function uid(): string {
 }
 
 export function newProject(): Project {
-  return { title: '새 매뉴얼', steps: [] };
+  return { title: '새 매뉴얼', steps: [], videoStepSec: DEFAULT_VIDEO_STEP_SEC };
 }

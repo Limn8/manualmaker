@@ -6,7 +6,7 @@
   canEncodeVideo,
 } from 'mediabunny';
 import type { Project } from '../types';
-import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE } from '../types';
+import { ACTION_LABELS, DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE, DEFAULT_VIDEO_STEP_SEC } from '../types';
 import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const W = 1280;
@@ -16,7 +16,6 @@ const VIDEO_BITRATE = 18_000_000;
 const MIN_CAPTION_H = 84;
 const MAX_CAPTION_H = H - 180;
 const TITLE_SEC = 2.2;
-const STEP_SEC = 3.6;
 
 /**
  * Renders the manual onto a canvas (title card → each step with an animated
@@ -35,8 +34,9 @@ export async function exportVideo(
   ctx.scale(RASTER_SCALE, RASTER_SCALE);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  const stepSec = Math.min(30, Math.max(1, project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC));
 
-  const total = TITLE_SEC + project.steps.length * STEP_SEC;
+  const total = TITLE_SEC + project.steps.length * stepSec;
 
   try {
     const mp4 = await renderMp4(canvas, draw, total, onProgress);
@@ -100,12 +100,12 @@ export async function exportVideo(
       return;
     }
     const st = t - TITLE_SEC;
-    const stepIdx = Math.floor(st / STEP_SEC);
+    const stepIdx = Math.floor(st / stepSec);
     if (stepIdx >= project.steps.length) {
       drawStep(project.steps.length - 1, 1);
       return;
     }
-    drawStep(stepIdx, (st - stepIdx * STEP_SEC) / STEP_SEC);
+    drawStep(stepIdx, (st - stepIdx * stepSec) / stepSec);
   }
 
   function drawTitleCard(p: number) {

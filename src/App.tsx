@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Project, Step } from './types';
-import { DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE, DEFAULT_INFO_DELAY_SEC, newProject, uid } from './types';
+import {
+  DEFAULT_BOX_COLOR,
+  DEFAULT_BOX_SHAPE,
+  DEFAULT_INFO_DELAY_SEC,
+  DEFAULT_VIDEO_STEP_SEC,
+  newProject,
+  uid,
+} from './types';
 import { loadProject, saveProject } from './store';
 import { downloadBlob, sanitizeFilename } from './utils';
 import CropModal from './components/CropModal';
@@ -194,6 +201,12 @@ export default function App() {
   }, []);
 
   const selected = project.steps.find((s) => s.id === selectedId) ?? null;
+  const videoStepSec = project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC;
+
+  function updateVideoStepSec(value: number) {
+    const next = Math.min(30, Math.max(1, Number.isFinite(value) ? value : DEFAULT_VIDEO_STEP_SEC));
+    setProject((p) => ({ ...p, videoStepSec: next }));
+  }
 
   async function handleExport(kind: 'html' | 'pdf' | 'video') {
     if (project.steps.length === 0) {
@@ -289,6 +302,18 @@ export default function App() {
           <button className="btn" disabled={!!exporting} onClick={() => handleExport('pdf')}>
             PDF
           </button>
+          <label className="video-duration-control" title="영상 내보내기에서 각 화면이 유지되는 시간">
+            <span>영상</span>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              step={0.5}
+              value={videoStepSec}
+              onChange={(e) => updateVideoStepSec(Number(e.target.value))}
+            />
+            <span>초/화면</span>
+          </label>
           <button className="btn" disabled={!!exporting} onClick={() => handleExport('video')}>
             영상
           </button>
