@@ -3,7 +3,8 @@ import type { Project, Step } from './types';
 import { newProject, uid } from './types';
 import { loadProject, saveProject } from './store';
 import { downloadBlob, sanitizeFilename } from './utils';
-import CaptureModal from './components/CaptureModal';
+import CropModal from './components/CropModal';
+import { blobToDataUrl, captureScreen, readClipboardImage } from './capture';
 import StepList from './components/StepList';
 import StepEditor from './components/StepEditor';
 import Player from './components/Player';
@@ -15,11 +16,12 @@ export default function App() {
   const [project, setProject] = useState<Project>(newProject);
   const [loaded, setLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showCapture, setShowCapture] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
   const importRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Load saved project once
   useEffect(() => {
@@ -53,8 +55,56 @@ export default function App() {
     };
     setProject((p) => ({ ...p, steps: [...p.steps, step] }));
     setSelectedId(step.id);
-    setShowCapture(false);
+    setCropImage(null);
   }, []);
+
+  // Ctrl+V anywhere: paste an image straight into the crop dialog
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            blobToDataUrl(file).then(setCropImage);
+            return;
+          }
+        }
+      }
+    }
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
+
+  async function handleCaptureScreen() {
+    try {
+      const img = await captureScreen();
+      if (img) setCropImage(img);
+    } catch (err) {
+      alert('화면 캡처에 실패했습니다: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  }
+
+  async function handlePasteClipboard() {
+    try {
+      const img = await readClipboardImage();
+      if (img) {
+        setCropImage(img);
+      } else {
+        alert('클립보드에 이미지가 없습니다. 먼저 화면을 캡처(예: Win+Shift+S)한 뒤 다시 시도하세요.');
+      }
+    } catch {
+      alert('클립보드를 읽을 수 없습니다. 이 창에서 Ctrl+V 로 직접 붙여넣어 보세요.');
+    }
+  }
+
+  function handlePickFile() {
+    fileRef.current?.click();
+  }
 
   const updateStep = useCallback((id: string, patch: Partial<Step>) => {
     setProject((p) => ({
@@ -150,9 +200,27 @@ export default function App() {
           placeholder="튜토리얼 제목"
         />
         <div className="topbar-actions">
-          <button className="btn primary" onClick={() => setShowCapture(true)}>
-            ＋ 캡처 추가
+          <button className="btn primary" onClick={handleCaptureScreen} title="브라우저 화면 공유로 원하는 창/화면을 캡처">
+            🖥️ 화면 캡처
           </button>
+          <button className="btn" onClick={handlePasteClipboard} title="클립보드의 이미지 가져오기 (Ctrl+V도 가능)">
+            📋 붙여넣기
+          </button>
+          <button className="btn" onClick={handlePickFile} title="이미지 파일 업로드">
+            📁 파일
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) blobToDataUrl(f).then(setCropImage);
+              e.target.value = '';
+            }}
+          />
+          <div className="divider" />
           <button
             className="btn"
             disabled={project.steps.length === 0}
@@ -202,7 +270,9 @@ export default function App() {
           onSelect={setSelectedId}
           onDelete={deleteStep}
           onReorder={reorderStep}
-          onAdd={() => setShowCapture(true)}
+          onCapture={handleCaptureScreen}
+          onPaste={handlePasteClipboard}
+          onFile={handlePickFile}
         />
         <div className="editor-area">
           {selected ? (
@@ -225,17 +295,25 @@ export default function App() {
                   <br />
                   단계별로 진행되는 인터랙티브 튜토리얼이 완성됩니다.
                 </p>
-                <button className="btn primary big" onClick={() => setShowCapture(true)}>
-                  📸 화면 캡처로 시작하기
-                </button>
+                <div className="empty-btns">
+                  <button className="btn primary big" onClick={handleCaptureScreen}>
+                    🖥️ 화면 캡처
+                  </button>
+                  <button className="btn big" onClick={handlePasteClipboard}>
+                    📋 붙여넣기
+                  </button>
+                  <button className="btn big" onClick={handlePickFile}>
+                    📁 파일 업로드
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {showCapture && (
-        <CaptureModal onDone={addStep} onClose={() => setShowCapture(false)} />
+      {cropImage && (
+        <CropModal image={cropImage} onDone={addStep} onClose={() => setCropImage(null)} />
       )}
       {showPlayer && <Player project={project} onClose={() => setShowPlayer(false)} />}
       {exporting && (

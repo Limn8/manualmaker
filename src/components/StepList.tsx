@@ -8,7 +8,9 @@ interface Props {
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onReorder: (from: number, to: number) => void;
-  onAdd: () => void;
+  onCapture: () => void;
+  onPaste: () => void;
+  onFile: () => void;
 }
 
 export default function StepList({
@@ -17,7 +19,9 @@ export default function StepList({
   onSelect,
   onDelete,
   onReorder,
-  onAdd,
+  onCapture,
+  onPaste,
+  onFile,
 }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -100,9 +104,17 @@ export default function StepList({
             </div>
           </div>
         ))}
-        <button className="step-add" onClick={onAdd}>
-          ＋ 스텝 추가
-        </button>
+        <div className="step-add-row">
+          <button className="step-add" onClick={onCapture} title="화면 캡처로 스텝 추가">
+            🖥️ 캡처
+          </button>
+          <button className="step-add" onClick={onPaste} title="클립보드 이미지로 스텝 추가">
+            📋 붙여넣기
+          </button>
+          <button className="step-add" onClick={onFile} title="이미지 파일로 스텝 추가">
+            📁 파일
+          </button>
+        </div>
       </div>
     </aside>
   );

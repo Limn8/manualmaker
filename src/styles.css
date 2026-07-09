@@ -281,6 +281,26 @@ body {
   padding: 1px 5px;
 }
 
+.step-add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.step-add-row .step-add {
+  width: auto;
+  flex: 1;
+  padding: 10px 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.empty-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .step-add {
   width: 100%;
   padding: 12px;
