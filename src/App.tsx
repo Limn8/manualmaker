@@ -29,6 +29,9 @@ export default function App() {
   const [recropId, setRecropId] = useState<string | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
   const [showVideoExportDialog, setShowVideoExportDialog] = useState(false);
+  const [videoGeminiApiKey, setVideoGeminiApiKey] = useState(
+    () => window.localStorage.getItem('manualmaker.geminiApiKey') ?? '',
+  );
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
   const importRef = useRef<HTMLInputElement>(null);
@@ -206,7 +209,6 @@ export default function App() {
   const selected = project.steps.find((s) => s.id === selectedId) ?? null;
   const videoStepSec = project.videoStepSec ?? DEFAULT_VIDEO_STEP_SEC;
   const videoDubbingEnabled = project.videoDubbingEnabled ?? DEFAULT_VIDEO_DUBBING_ENABLED;
-  const videoTtsProxyUrl = project.videoTtsProxyUrl ?? '';
   const videoTtsVoice = project.videoTtsVoice ?? DEFAULT_VIDEO_TTS_VOICE;
 
   function updateVideoStepSec(value: number) {
@@ -218,12 +220,13 @@ export default function App() {
     setProject((p) => ({ ...p, videoDubbingEnabled: enabled }));
   }
 
-  function updateVideoTtsProxyUrl(value: string) {
-    setProject((p) => ({ ...p, videoTtsProxyUrl: value }));
-  }
-
   function updateVideoTtsVoice(value: string) {
     setProject((p) => ({ ...p, videoTtsVoice: value }));
+  }
+
+  function updateVideoGeminiApiKey(value: string) {
+    setVideoGeminiApiKey(value);
+    window.localStorage.setItem('manualmaker.geminiApiKey', value);
   }
 
   function openVideoExportDialog() {
@@ -252,7 +255,7 @@ export default function App() {
       } else if (kind === 'pdf') {
         await exportPdf(project, setExportProgress);
       } else {
-        await exportVideo(project, setExportProgress);
+        await exportVideo({ ...project, videoGeminiApiKey }, setExportProgress);
       }
     } catch (err) {
       console.error(err);
@@ -465,16 +468,16 @@ export default function App() {
               {videoDubbingEnabled && (
                 <>
                   <label className="video-export-field">
-                    <span>Apps Script URL</span>
+                    <span>Gemini API key</span>
                     <input
-                      type="url"
-                      value={videoTtsProxyUrl}
-                      onChange={(e) => updateVideoTtsProxyUrl(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
+                      type="password"
+                      value={videoGeminiApiKey}
+                      onChange={(e) => updateVideoGeminiApiKey(e.target.value)}
+                      placeholder="AIza..."
                     />
                   </label>
                   <label className="video-export-field compact">
-                    <span>Qwen 음성</span>
+                    <span>TTS 음성</span>
                     <input
                       type="text"
                       value={videoTtsVoice}

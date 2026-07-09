@@ -56,8 +56,8 @@ export const DEFAULT_BOX_COLOR = BOX_COLOR_PRESETS[0];
 export const DEFAULT_BOX_SHAPE: BoxShape = 'rounded';
 export const DEFAULT_INFO_DELAY_SEC = 3;
 export const DEFAULT_VIDEO_STEP_SEC = 5;
-export const DEFAULT_VIDEO_DUBBING_ENABLED = true;
-export const DEFAULT_VIDEO_TTS_VOICE = 'Cherry';
+export const DEFAULT_VIDEO_DUBBING_ENABLED = false;
+export const DEFAULT_VIDEO_TTS_VOICE = 'Kore';
 
 /** Normalized rectangle, all values 0..1 relative to image size */
 export interface Box {
@@ -87,8 +87,8 @@ export interface Project {
   steps: Step[];
   videoStepSec?: number;
   videoDubbingEnabled?: boolean;
-  videoTtsProxyUrl?: string;
   videoTtsVoice?: string;
+  videoGeminiApiKey?: string;
 }
 
 export function uid(): string {
@@ -101,7 +101,6 @@ export function newProject(): Project {
     steps: [],
     videoStepSec: DEFAULT_VIDEO_STEP_SEC,
     videoDubbingEnabled: DEFAULT_VIDEO_DUBBING_ENABLED,
-    videoTtsProxyUrl: '',
     videoTtsVoice: DEFAULT_VIDEO_TTS_VOICE,
   };
 }

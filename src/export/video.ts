@@ -27,7 +27,11 @@ const MIN_CAPTION_H = 84;
 const MAX_CAPTION_H = H - 180;
 const TITLE_SEC = 2.2;
 const TTS_TAIL_SEC = 0.35;
-const TTS_MODEL = 'qwen3-tts-flash';
+const GEMINI_TTS_MODEL = 'gemini-3.1-flash-tts-preview';
+const GEMINI_TTS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const GEMINI_PCM_SAMPLE_RATE = 24000;
+const GEMINI_PCM_CHANNELS = 1;
+const GEMINI_PCM_BITS_PER_SAMPLE = 16;
 
 /**
  * Renders the manual onto a canvas (title card → each step with an animated
@@ -531,9 +535,9 @@ async function fetchNarrations(
   project: Project,
   onProgress?: (p: number) => void,
 ): Promise<NarrationResult> {
-  const proxyUrl = project.videoTtsProxyUrl?.trim();
-  if (!proxyUrl) {
-    throw new Error('더빙을 포함하려면 영상 내보내기 창에 Apps Script URL을 입력하세요.');
+  const apiKey = project.videoGeminiApiKey?.trim();
+  if (!apiKey) {
+    throw new Error('더빙을 포함하려면 영상 내보내기 창에 Gemini API key를 입력하세요.');
   }
 
   const AudioContextCtor = window.AudioContext;
@@ -547,15 +551,9 @@ async function fetchNarrations(
 
   try {
     for (let i = 0; i < project.steps.length; i++) {
-      const step = project.steps[i];
-      const audioBytes = await requestNarrationAudio(proxyUrl, {
+      const audioBytes = await requestGeminiNarrationAudio(apiKey, {
         text: makeNarrationText(project, i),
         voice,
-        model: TTS_MODEL,
-        language_type: 'Korean',
-        step: i + 1,
-        total: project.steps.length,
-        action: step.action,
       });
       buffers.push(await context.decodeAudioData(audioBytes.slice(0)));
       onProgress?.((i + 1) / project.steps.length);
@@ -576,68 +574,100 @@ function makeNarrationText(project: Project, index: number): string {
   return text.length > 600 ? text.slice(0, 600) : text;
 }
 
-async function requestNarrationAudio(
-  proxyUrl: string,
-  payload: Record<string, unknown>,
+async function requestGeminiNarrationAudio(
+  apiKey: string,
+  payload: { text: string; voice: string },
 ): Promise<ArrayBuffer> {
-  const response = await fetch(proxyUrl, {
+  const response = await fetch(GEMINI_TTS_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      model: GEMINI_TTS_MODEL,
+      input: `한국어로 자연스럽게 읽어줘: ${payload.text}`,
+      response_format: {
+        type: 'audio',
+      },
+      generation_config: {
+        speech_config: [
+          {
+            voice: payload.voice,
+          },
+        ],
+      },
+    }),
   });
-  const contentType = response.headers.get('content-type') ?? '';
-  if (contentType.startsWith('audio/')) {
-    if (!response.ok) throw new Error(`TTS 요청 실패 (${response.status})`);
-    return response.arrayBuffer();
-  }
-
   const raw = await response.text();
-  let data: TtsProxyResponse;
+  let data: GeminiTtsResponse;
   try {
-    data = JSON.parse(raw) as TtsProxyResponse;
+    data = JSON.parse(raw) as GeminiTtsResponse;
   } catch {
-    throw new Error(`TTS 응답을 해석할 수 없습니다: ${raw.slice(0, 120)}`);
+    throw new Error(`Gemini TTS 응답을 해석할 수 없습니다: ${raw.slice(0, 120)}`);
   }
-  if (!response.ok || data.ok === false || data.error) {
-    throw new Error(data.error || `TTS 요청 실패 (${response.status})`);
-  }
-
-  const base64 = data.audioBase64 ?? data.audio?.base64 ?? data.audio?.data;
-  if (base64) return base64ToArrayBuffer(base64);
-
-  const audioUrl = data.audioUrl ?? data.url ?? data.audio?.url;
-  if (audioUrl) {
-    const audioResponse = await fetch(audioUrl);
-    if (!audioResponse.ok) throw new Error(`TTS 오디오 다운로드 실패 (${audioResponse.status})`);
-    return audioResponse.arrayBuffer();
+  if (!response.ok || data.error) {
+    throw new Error(data.error?.message || `Gemini TTS 요청 실패 (${response.status})`);
   }
 
-  throw new Error('TTS 응답에 audioBase64 또는 audioUrl이 없습니다.');
+  const pcmBase64 = data.output_audio?.data;
+  if (!pcmBase64) throw new Error('Gemini TTS 응답에 output_audio.data가 없습니다.');
+  return pcmBase64ToWavArrayBuffer(pcmBase64);
 }
 
-type TtsProxyResponse = {
-  ok?: boolean;
-  error?: string;
-  audioBase64?: string;
-  audioUrl?: string;
-  url?: string;
-  audio?: {
-    base64?: string;
+type GeminiTtsResponse = {
+  output_audio?: {
     data?: string;
-    url?: string;
+  };
+  error?: {
+    message?: string;
   };
 };
 
-function base64ToArrayBuffer(value: string): ArrayBuffer {
+function pcmBase64ToWavArrayBuffer(value: string): ArrayBuffer {
+  const pcm = base64ToBytes(value);
+  const header = makeWavHeader(pcm.byteLength);
+  const wav = new Uint8Array(header.byteLength + pcm.byteLength);
+  wav.set(header, 0);
+  wav.set(pcm, header.byteLength);
+  return wav.buffer;
+}
+
+function base64ToBytes(value: string): Uint8Array {
   const base64 = value.includes(',') ? value.slice(value.indexOf(',') + 1) : value;
   const binary = window.atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes.buffer;
+  return bytes;
+}
+
+function makeWavHeader(dataLength: number): Uint8Array {
+  const byteRate = (GEMINI_PCM_SAMPLE_RATE * GEMINI_PCM_CHANNELS * GEMINI_PCM_BITS_PER_SAMPLE) / 8;
+  const blockAlign = (GEMINI_PCM_CHANNELS * GEMINI_PCM_BITS_PER_SAMPLE) / 8;
+  const buffer = new ArrayBuffer(44);
+  const view = new DataView(buffer);
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataLength, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, GEMINI_PCM_CHANNELS, true);
+  view.setUint32(24, GEMINI_PCM_SAMPLE_RATE, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, GEMINI_PCM_BITS_PER_SAMPLE, true);
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, dataLength, true);
+  return new Uint8Array(buffer);
+}
+
+function writeAscii(view: DataView, offset: number, text: string): void {
+  for (let i = 0; i < text.length; i++) {
+    view.setUint8(offset + i, text.charCodeAt(i));
+  }
 }
 
 function makeStepOffsets(stepDurations: readonly number[]): number[] {
