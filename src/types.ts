@@ -89,5 +89,5 @@ export function uid(): string {
 }
 
 export function newProject(): Project {
-  return { title: '새 튜토리얼', steps: [] };
+  return { title: '새 매뉴얼', steps: [] };
 }

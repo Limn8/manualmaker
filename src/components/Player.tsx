@@ -105,7 +105,7 @@ export default function Player({ project, onClose }: Props) {
       {done ? (
         <div className="player-done">
           <div className="player-done-icon">🎉</div>
-          <h2>튜토리얼 완료!</h2>
+          <h2>매뉴얼 완료!</h2>
           <p>{steps.length}개 단계를 모두 마쳤습니다.</p>
           <div className="player-done-btns">
             <button className="btn" onClick={() => setIndex(0)}>

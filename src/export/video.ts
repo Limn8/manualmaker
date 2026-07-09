@@ -17,7 +17,7 @@ const TITLE_SEC = 2.2;
 const STEP_SEC = 3.6;
 
 /**
- * Renders the tutorial onto a canvas (title card → each step with an animated
+ * Renders the manual onto a canvas (title card → each step with an animated
  * highlight) and exports MP4 when WebCodecs can encode it.
  */
 export async function exportVideo(

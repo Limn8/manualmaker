@@ -111,7 +111,7 @@ export default function StepList({
         ))}
         <div className="step-add-row">
           <button className="step-add" onClick={onCapture} title="화면 캡처로 단계 추가">
-            🖥️ 캡처
+            🖥️ 화면 캡처
           </button>
           <button className="step-add" onClick={onPaste} title="클립보드 이미지로 단계 추가">
             📋 클립보드
@@ -120,12 +120,12 @@ export default function StepList({
             📁 파일
           </button>
           <button
-            className="step-add copy"
+            className="step-add"
             onClick={onDuplicatePrevious}
             disabled={steps.length === 0}
             title="현재 단계 또는 마지막 단계를 복사"
           >
-            페이지 복사
+            ⧉ 페이지 복사
           </button>
         </div>
       </div>

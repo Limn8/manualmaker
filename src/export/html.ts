@@ -1,4 +1,4 @@
-import type { Project } from '../types';
+﻿import type { Project } from '../types';
 import { DEFAULT_BOX_COLOR, DEFAULT_BOX_SHAPE, DEFAULT_INFO_DELAY_SEC } from '../types';
 import { downloadBlob, sanitizeFilename } from '../utils';
 
@@ -137,7 +137,7 @@ function render(){
     box.style.opacity='0';prevBox=false;
     if(boxUnbind){boxUnbind();boxUnbind=null;}
     doneEl.style.display='block';
-    doneEl.innerHTML='<div class="big">🎉</div><h2>튜토리얼 완료!</h2><p>'+steps.length+'개 단계를 모두 마쳤습니다.</p><button id="restart" class="primary">처음부터 다시</button>';
+    doneEl.innerHTML='<div class="big">🎉</div><h2>매뉴얼 완료!</h2><p>'+steps.length+'개 단계를 모두 마쳤습니다.</p><button id="restart" class="primary">처음부터 다시</button>';
     document.getElementById('restart').onclick=function(){idx=0;render();};
     footer.innerHTML='';
     setActiveDash(-1);
@@ -223,3 +223,4 @@ function escapeHtml(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
+

@@ -11,7 +11,7 @@ export function downloadBlob(filename: string, blob: Blob): void {
 
 export function sanitizeFilename(name: string): string {
   const cleaned = name.replace(/[\\/:*?"<>|]/g, '_').trim();
-  return cleaned || 'tutorial';
+  return cleaned || 'manual';
 }
 
 export function loadImage(src: string): Promise<HTMLImageElement> {

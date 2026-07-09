@@ -250,7 +250,7 @@ export default function App() {
           className="title-input"
           value={project.title}
           onChange={(e) => setProject((p) => ({ ...p, title: e.target.value }))}
-          placeholder="튜토리얼 제목"
+          placeholder="매뉴얼 제목"
         />
         <div className="topbar-actions">
           <button className="btn primary" onClick={handleCaptureScreen} title="브라우저 화면 공유로 원하는 창/화면을 캡처">
@@ -344,11 +344,11 @@ export default function App() {
                 <div className="empty-icon">🖼️</div>
                 <h2>첫 단계를 만들어보세요</h2>
                 <p>
-                  화면을 캡처하거나 이미지를 붙여넣어 튜토리얼 단계를 추가합니다.
+                  화면을 캡처하거나 이미지를 붙여넣어 매뉴얼 단계를 추가합니다.
                   <br />
                   이미지 위에 강조 박스를 그리고, 클릭·입력 등의 동작을 지정하면
                   <br />
-                  단계별로 진행되는 인터랙티브 튜토리얼이 완성됩니다.
+                  단계별로 진행되는 인터랙티브 매뉴얼이 완성됩니다.
                 </p>
                 <div className="empty-btns">
                   <button className="btn primary big" onClick={handleCaptureScreen}>

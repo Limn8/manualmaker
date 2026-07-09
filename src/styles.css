@@ -137,7 +137,8 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--fill-hover);
+  background: var(--accent);
+  color: #fff;
 }
 
 .btn:disabled {
@@ -160,7 +161,8 @@ body {
 }
 
 .btn.ghost:hover:not(:disabled) {
-  background: var(--fill);
+  background: var(--accent);
+  color: #fff;
 }
 
 .btn.big {
@@ -376,22 +378,12 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.08s;
 }
 
 .step-add:hover {
-  background: var(--fill-hover);
-  color: var(--text);
-}
-
-.step-add.copy {
-  background: #e5f9f1;
-  color: #008b55;
-}
-
-.step-add.copy:hover:not(:disabled) {
-  background: #d3f3e5;
-  color: #006f45;
+  background: var(--accent);
+  color: #fff;
 }
 
 /* ---------- Action badge ---------- */
