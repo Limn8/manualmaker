@@ -246,8 +246,9 @@ export default function App() {
         <div className="brand">
           ManualMaker
         </div>
-        <input
+        <textarea
           className="title-input"
+          rows={2}
           value={project.title}
           onChange={(e) => setProject((p) => ({ ...p, title: e.target.value }))}
           placeholder="매뉴얼 제목"
@@ -367,9 +368,14 @@ export default function App() {
         </div>
       </div>
 
-      <a className="creator-link" href="https://litt.ly/limn8" target="_blank" rel="noreferrer">
-        제작: 경기이음온학교 임현우
-      </a>
+      <div className="fixed-badges" aria-label="도움말과 제작 정보">
+        <a className="fixed-badge manual-badge" href="/manual-maker-manual.html" target="_blank" rel="noreferrer">
+          매뉴얼 메이커 매뉴얼
+        </a>
+        <a className="fixed-badge creator-link" href="https://litt.ly/limn8" target="_blank" rel="noreferrer">
+          제작: 경기이음온학교 임현우
+        </a>
+      </div>
 
       {cropImage && (
         <CropModal

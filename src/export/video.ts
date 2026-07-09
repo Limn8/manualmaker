@@ -12,7 +12,8 @@ import { downloadBlob, fitRect, loadImage, sanitizeFilename } from '../utils';
 
 const W = 1280;
 const H = 720;
-const CAPTION_H = 84;
+const MIN_CAPTION_H = 84;
+const MAX_CAPTION_H = H - 180;
 const TITLE_SEC = 2.2;
 const STEP_SEC = 3.6;
 
@@ -109,9 +110,11 @@ export async function exportVideo(
     ctx.textAlign = 'center';
     ctx.fillStyle = '#191f28';
     ctx.font = 'bold 54px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    fillWrapped(project.title, W / 2, H / 2 - 20, W - 200, 66);
+    const titleLines = wrapTextLines(project.title, W - 200);
+    const titleY = H / 2 - ((titleLines.length - 1) * 66) / 2 - 20;
+    drawTextLines(titleLines, W / 2, titleY, 66, 'center');
     ctx.fillStyle = '#3182f6';
-    ctx.fillRect(W / 2 - 60, H / 2 + 56, 120, 5);
+    ctx.fillRect(W / 2 - 60, titleY + titleLines.length * 66 + 10, 120, 5);
     ctx.globalAlpha = 1;
   }
 
@@ -124,7 +127,21 @@ export async function exportVideo(
     const alpha = Math.min(1, p * 6);
     ctx.globalAlpha = alpha;
 
-    const areaH = H - CAPTION_H;
+    const label = ACTION_LABELS[step.action];
+    ctx.font = 'bold 20px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+    const badgeW = ctx.measureText(label).width + 28;
+    const descX = 38 + badgeW + 16;
+    const descMaxW = W - descX - 160;
+    ctx.font = '24px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
+    const descLines = wrapTextLines(step.description || '', descMaxW);
+    const textLineCount = Math.max(1, descLines.length);
+    const captionH = Math.min(
+      MAX_CAPTION_H,
+      Math.max(MIN_CAPTION_H, 44 + textLineCount * 30 + 18),
+    );
+    const capY = H - captionH;
+
+    const areaH = H - captionH;
     const fit = fitRect(img.naturalWidth, img.naturalHeight, W - 40, areaH - 30);
     const dx = 20 + fit.x;
     const dy = 15 + fit.y;
@@ -187,39 +204,36 @@ export async function exportVideo(
 
       // corner action tag at the box bottom-right
       if (step.showBoxLabel !== false) {
-        drawTag(bx, by, bw, bh, step.action, boxColor);
+        drawTag(bx, by, bw, bh, step.action, boxColor, captionH);
       }
     }
 
     // caption bar
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, H - CAPTION_H, W, CAPTION_H);
+    ctx.fillRect(0, capY, W, captionH);
     ctx.fillStyle = '#3182f6';
     // progress within the whole video
-    ctx.fillRect(0, H - CAPTION_H, W * ((i + p) / project.steps.length), 4);
+    ctx.fillRect(0, capY, W * ((i + p) / project.steps.length), 4);
 
     // badge
-    const label = ACTION_LABELS[step.action];
     ctx.font = 'bold 20px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
-    const bw2 = ctx.measureText(label).width + 28;
-    roundRect(24, H - CAPTION_H + 22, bw2, 36, 12);
+    roundRect(24, capY + 22, badgeW, 36, 12);
     ctx.fillStyle = '#e8f3ff';
     ctx.fill();
     ctx.fillStyle = '#3182f6';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, 38, H - CAPTION_H + 41);
+    ctx.fillText(label, 38, capY + 41);
 
     // description
     ctx.font = '24px "Pretendard Variable", Pretendard, "Segoe UI", "Malgun Gothic", sans-serif';
     ctx.fillStyle = '#191f28';
-    const desc = step.description || '';
-    ctx.fillText(truncate(desc, W - bw2 - 180), 38 + bw2 + 16, H - CAPTION_H + 41);
+    drawTextLines(descLines, descX, capY + 39, 30, 'left');
 
     // counter
     ctx.textAlign = 'right';
     ctx.fillStyle = '#8b95a1';
-    ctx.fillText(`${i + 1} / ${project.steps.length}`, W - 24, H - CAPTION_H + 41);
+    ctx.fillText(`${i + 1} / ${project.steps.length}`, W - 24, capY + 41);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = 1;
@@ -243,6 +257,7 @@ export async function exportVideo(
     bh: number,
     action: string,
     color: string,
+    captionH: number,
   ) {
     const label = ACTION_LABELS[action as keyof typeof ACTION_LABELS];
     ctx.save();
@@ -256,7 +271,7 @@ export async function exportVideo(
     let tx = bx + bw - tagW;
     tx = Math.max(8, Math.min(tx, W - 8 - tagW));
     let ty = by + bh + 8;
-    if (ty + tagH > H - CAPTION_H - 6) ty = by - tagH - 8;
+    if (ty + tagH > H - captionH - 6) ty = by - tagH - 8;
     if (ty < 6) ty = 6;
     roundRect(tx, ty, tagW, tagH, 10);
     ctx.fillStyle = color;
@@ -367,28 +382,37 @@ export async function exportVideo(
     ctx.restore();
   }
 
-  function truncate(text: string, maxWidth: number): string {
-    if (ctx.measureText(text).width <= maxWidth) return text;
-    let s = text;
-    while (s.length > 0 && ctx.measureText(s + '…').width > maxWidth) {
-      s = s.slice(0, -1);
-    }
-    return s + '…';
+  function drawTextLines(
+    lines: readonly string[],
+    x: number,
+    y: number,
+    lineHeight: number,
+    align: CanvasTextAlign,
+  ): void {
+    ctx.textAlign = align;
+    ctx.textBaseline = 'alphabetic';
+    lines.forEach((line, index) => {
+      ctx.fillText(line, x, y + index * lineHeight);
+    });
   }
 
-  function fillWrapped(text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
-    let line = '';
-    let cy = y;
-    for (const ch of text) {
-      if (ctx.measureText(line + ch).width > maxWidth) {
-        ctx.fillText(line, x, cy);
-        line = ch;
-        cy += lineHeight;
-      } else {
-        line += ch;
+  function wrapTextLines(text: string, maxWidth: number): string[] {
+    const paragraphs = text.length > 0 ? text.split(/\r?\n/) : [''];
+    const lines: string[] = [];
+    paragraphs.forEach((paragraph) => {
+      let line = '';
+      for (const ch of paragraph) {
+        const next = line + ch;
+        if (line && ctx.measureText(next).width > maxWidth) {
+          lines.push(line);
+          line = ch;
+        } else {
+          line = next;
+        }
       }
-    }
-    if (line) ctx.fillText(line, x, cy);
+      lines.push(line);
+    });
+    return lines;
   }
 }
 
