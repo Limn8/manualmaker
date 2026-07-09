@@ -26,7 +26,7 @@ interface Edges {
 }
 
 type Drag =
-  | { mode: 'draw'; sx: number; sy: number }
+  | { mode: 'draw'; sx: number; sy: number; previousBox: Box | null }
   | { mode: 'move'; offX: number; offY: number; box: Box }
   | { mode: 'resize'; edges: Edges; box: Box };
 
@@ -92,7 +92,7 @@ export default function StepEditor({ step, index, total, onChange, onRecrop }: P
         return;
       }
     }
-    dragRef.current = { mode: 'draw', sx: p.x, sy: p.y };
+    dragRef.current = { mode: 'draw', sx: p.x, sy: p.y, previousBox: box };
     onChange({ box: { x: p.x, y: p.y, w: 0, h: 0 } });
   }
 
@@ -142,7 +142,7 @@ export default function StepEditor({ step, index, total, onChange, onRecrop }: P
     if (!drag) return;
     // discard boxes too small to be intentional
     if (step.box && (step.box.w < 0.01 || step.box.h < 0.01)) {
-      onChange({ box: drag.mode === 'draw' ? null : drag.box });
+      onChange({ box: drag.mode === 'draw' ? drag.previousBox : drag.box });
     }
   }
 
