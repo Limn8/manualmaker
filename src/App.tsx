@@ -469,18 +469,6 @@ export default function App() {
         </div>
       </div>
 
-      <div className="fixed-badges" aria-label="도움말과 제작 정보">
-        <a className="fixed-badge manual-badge" href="/manual-maker-manual.html" target="_blank" rel="noreferrer">
-          매뉴얼 메이커 매뉴얼
-        </a>
-        <a className="fixed-badge privacy-link" href="/privacy.html" target="_blank" rel="noreferrer">
-          개인정보처리방침
-        </a>
-        <a className="fixed-badge creator-link" href="https://litt.ly/limn8" target="_blank" rel="noreferrer">
-          제작: 경기이음온학교 임현우
-        </a>
-      </div>
-
       {cropImage && (
         <CropModal
           image={cropImage}
